@@ -17,7 +17,7 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 ## Read in the various files
 ##------------------------------------------------------------------
 train.raw	<- read.csv("train.csv", header=TRUE)
-test.raw	<- read.csv("test.csv", header=TRUE)
+test.raw	<- read.csv("test_v2.csv", header=TRUE)
 
 ##------------------------------------------------------------------
 ## Write the raw data to an .Rdata file
