@@ -24,16 +24,36 @@ replaceBads <- function(x) {
         if (class(x) == "character") {
             return(rep("x", nx))
         } else {
-            return(rep(-99999, nx))
+            return(rep(-9, nx))
         }
+        
     ## some bad, some good
     } else {
+        
+        ## use a table to isolate cases where multiple values exist
+        x.tbl <- table(x)
+        
+        ## use majority value as the replacement
         if (class(x) == "character") {
-            swap.x <- x[(x != "")][1]
+            swap.x <- as.character(names(x.tbl[ which(x.tbl == max(x.tbl)) ])[1])
         } else {
-            swap.x <- x[!is.na(x)][1]
+            swap.x <- as.numeric(names(x.tbl[ which(x.tbl == max(x.tbl)) ])[1])
         }
         return(rep(swap.x, nx))
     }
+    
 }
 
+
+
+##------------------------------------------------------------------
+## <function> :: calcDiff
+##------------------------------------------------------------------
+calcDiff    <- function(x) {
+    nx  <- length(x)
+    if (nx == 1) {
+        return(0)
+    } else {
+        return(c(0, diff(x)))
+    }
+}

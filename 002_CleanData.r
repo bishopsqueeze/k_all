@@ -75,21 +75,22 @@ all.copy                <- all.data
 all.copy$car_value      <- as.character(all.copy$car_value) ##
 
 ##------------------------------------------------------------------
-## Clean via a loop
+## Clean bads
 ##------------------------------------------------------------------
 ##  Example blank   == 10000041
 ##  Example missing == 10000033
+##  Example multi   == 10056192
 ##------------------------------------------------------------------
+
+## columns to scrub
 scrub.cols   <- c(names(all.na), names(all.bl))
 
-##------------------------------------------------------------------
 ## Loop over all of the columns to scrub
-##------------------------------------------------------------------
 for (i in 1:length(scrub.cols)) {
 
     ## identify the column we're scrubbing
     tmp.col <- scrub.cols[i]
-    new.col <- paste(tmp.col,".nona", sep="")
+    new.col <- paste(tmp.col,".r", sep="")
     
     ## backfill NAs/blanks if possible
     if ( tmp.col == "car_value") {
@@ -99,22 +100,8 @@ for (i in 1:length(scrub.cols)) {
     }
 }
 
-## *** there must be cases where there are multiple car values
-## *** same for risk_factor
-tmp.cust <- unique(all.copy[ is.na(all.copy$risk_factor), c("customer_ID")])
-a        <- all.copy[ which(all.copy$customer_ID %in% tmp.cust), ]
-
-
-
-rf.var <- tapply(all.copy$risk_factor, all.copy$customer_ID, function(x){length(unique(x))})
-
-
-
-
 ##------------------------------------------------------------------
-## Normalize age ranges
-## Normalize costs (but keep raw costs)
-## Normalize car age
+## Normalize numeric ranges
 ##------------------------------------------------------------------
 old         <- all.data$age_old
 norm.old    <- (old - min(old, na.rm=TRUE)) / (max(old, na.rm=TRUE) - min(old, na.rm=TRUE))
@@ -128,61 +115,57 @@ norm.cost   <- (cost - mean(cost, na.rm=TRUE))/sd(cost, na.rm=TRUE)
 carage      <- all.data$car_age
 norm.carage <- (carage - min(carage, na.rm=TRUE)) / (max(carage, na.rm=TRUE) - min(carage, na.rm=TRUE))
 
+##------------------------------------------------------------------
+## Append normalized variables
+##------------------------------------------------------------------
+all.copy$car_value.n    <- num.car_value
+all.copy$state.n        <- num.state
+all.copy$time.n         <- num.min
+all.copy$age_old.n      <- norm.old
+all.copy$age_young.n    <- norm.young
+all.copy$cost.n         <- norm.cost
+all.copy$car_age.n      <- norm.carage
+
+##------------------------------------------------------------------
+## Create additional variables
+##------------------------------------------------------------------
+
+## customer-day index
+##all.copy$cust_day   <- factor(paste(all.copy$customer_ID, all.copy$day, sep="_"))
+## period-over-period time differences (by customer_ID && day) -- but list names may be reordered ...
+##all.copy$dtime.n  <- tapply(all.copy$time.n, all.copy$cust_day, calcDiff)
+
+## period-over-period cost differences (by customer_ID)
+all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
+
+## cumulative cost differences (by customer_ID)
+all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
+
+## period-over-period change in each of the selection options
+for (i in 1:7) {
+    tmp.ch  <- LETTERS[i]
+    tmp.d   <- paste("d",tmp.ch,sep="")
+    
+    all.copy[, tmp.d] <- as.vector(unlist(tapply(all.copy[,tmp.ch], all.copy[,c("customer_ID")], calcDiff)))
+}
+
+## rolling total of period-over-period change in each of the selection options
+for (i in 1:7) {
+    tmp.ch  <- LETTERS[i]
+    tmp.d   <- paste("d",tmp.ch,sep="")
+    tmp.n   <- paste("n",tmp.ch,sep="")
+    
+    all.copy[, tmp.n] <- as.vector(unlist(tapply(all.copy[,tmp.d], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
+}
 
 ##------------------------------------------------------------------
 ##
 ##------------------------------------------------------------------
 
-all.copy$car_value.n    <- num.car_value
-all.copy$state.n        <- num.state
-all.copy$time.n         <- num.min
-
-
-##------------------------------------------------------------------
-## Transform all character codes into numeric and save results as a matrix
-##------------------------------------------------------------------
-
-
-##------------------------------------------------------------------
-## Replace missings (assumptions galore)
-##------------------------------------------------------------------
-
-## train
-tr.cl <- tr
-
-## replace missing ints with 0
-tr.cl[is.na(tr.cl$C_previous), c("C_previous")] <- 0
-## create a new category
-tr.cl[is.na(tr.cl$duration_previous), c("duration_previous")] <- 0
-## assume zero duration
-tr.cl[is.na(tr.cl$risk_factor), c("risk_factor")] <- 0
-
-## replace missing factor with a new factor
-tmp.car_value <- as.character(tr.cl$car_value)
-tmp.car_value <- ifelse(tmp.car_value == "", "x", tmp.car_value)
-tr.cl$car_value <- factor(tmp.car_value)
-
-
-## test
-te.cl <- te
-
-## replace missing ints with 0
-te.cl[is.na(te.cl$C_previous), c("C_previous")] <- 0
-## create a new category
-te.cl[is.na(te.cl$duration_previous), c("duration_previous")] <- 0
-## assume zero duration
-te.cl[is.na(te.cl$risk_factor), c("risk_factor")] <- 0
-
-## replace missing factor with a new factor
-tmp.car_value <- as.character(te.cl$car_value)
-tmp.car_value <- ifelse(tmp.car_value == "", "x", tmp.car_value)
-te.cl$car_value <- factor(tmp.car_value)
-
-
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.na, all.bl file="002_allstateRawData.Rdata")
+save(all.na, all.bl, all.copy, file="002_allstateRawData.Rdata")
 
 
 
