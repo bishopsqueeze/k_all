@@ -1,6 +1,18 @@
 ##------------------------------------------------------------------
 ## The purpose of this script is to:
-##	1. Simply read the raw data files
+##	1. Address some of the known issues with the raw data
+##  2. Normalize variable ranges
+##  3. Create variables so that the entire dataset can be put into
+##     a matrix rather than a data frame
+##------------------------------------------------------------------
+
+##------------------------------------------------------------------
+## Observations
+##------------------------------------------------------------------
+## can have locations in two states (e.g., neighboring states like KS/MO)
+
+##------------------------------------------------------------------
+## Load libraries
 ##------------------------------------------------------------------
 
 ##------------------------------------------------------------------
@@ -50,29 +62,33 @@ all.bl <- apply(all.data, 2, function(x){sum(ifelse(x=="", 1, 0))})
 all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
 
 ##------------------------------------------------------------------
-## Replace state factors with a numeric code
+## Assign state factors a numeric code
 ##------------------------------------------------------------------
 tmp.state   <- as.character(all.data$state)
 ref.state   <- c(state.abb, "DC")
 num.state   <- as.vector(unlist(sapply(tmp.state, function(x){which(ref.state == x)})))
 
 ##------------------------------------------------------------------
-## Replace HH:MM with minutes since 00:00
+## Transform HH:MM to minutes since 00:00
 ##------------------------------------------------------------------
 num.min    <- as.numeric(substr(all.data$time,1,2))*60 + as.numeric(substr(all.data$time,4,5))
 
 ##------------------------------------------------------------------
-## Create a copy & load the additional data
+## Create a copy of the data & load the additional data
 ##------------------------------------------------------------------
 all.copy                <- all.data
 all.copy$car_value      <- as.character(all.copy$car_value)
+
+##******************************************************************
+## From here on, all operations should be on the data copy
+##******************************************************************
 
 ##------------------------------------------------------------------
 ## Clean bads
 ##------------------------------------------------------------------
 ##  Example blank   == 10000041
 ##  Example missing == 10000033
-##  Example multi   == 10056192
+##  Example multi   == 10056192 (incl. day change for purchase)
 ##------------------------------------------------------------------
 
 ## columns to scrub
@@ -97,7 +113,7 @@ for (i in 1:length(scrub.cols)) {
 ## Replace scrubbed car_value factors with a numeric code
 ##------------------------------------------------------------------
 tmp.ch          <- as.character(all.copy$car_value.r)
-tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode blanks as "z"
+tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode remaining blanks as "z"
 num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)})))
 
 ##------------------------------------------------------------------
@@ -118,30 +134,19 @@ norm.carage <- (carage - min(carage, na.rm=TRUE)) / (max(carage, na.rm=TRUE) - m
 ##------------------------------------------------------------------
 ## Append normalized variables
 ##------------------------------------------------------------------
-all.copy$car_value.n    <- num.car_value
-all.copy$state.n        <- num.state
-all.copy$time.n         <- num.min
-all.copy$age_old.n      <- norm.old
-all.copy$age_young.n    <- norm.young
-all.copy$cost.n         <- norm.cost
-all.copy$car_age.n      <- norm.carage
+all.copy$car_value.num  <- num.car_value
+all.copy$state.num      <- num.state
+all.copy$time.num       <- num.min
+all.copy$dayfrac.nrm    <- num.min / (24*60)
+all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
+all.copy$age_old.nrm    <- norm.old
+all.copy$age_young.nrm  <- norm.young
+all.copy$cost.nrm       <- norm.cost
+all.copy$car_age.nrm    <- norm.carage
 
 ##------------------------------------------------------------------
 ## Create additional variables
 ##------------------------------------------------------------------
-
-## customer-day index
-#all.copy$cust_day   <- factor(paste(all.copy$customer_ID, all.copy$day, sep="_"))
-#
-#   ## period-over-period time differences (by customer_ID && day) -- but list names may be reordered ...
-#   tmp.list    <- tapply(all.copy$time.n, all.copy$cust_day, calcDiff)
-#   tmp.names   <- names(tmp.list)
-#
-#   ## isolate unique customer-day values
-#   uniq.cd     <- as.character(unique(all.copy$cust_day))
-#
-#    tmp <- unlist(sapply(uniq.cd, function(x){tmp.list[[x]]}))
-
 
 ## period-over-period cost differences (by customer_ID)
 all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
@@ -153,7 +158,6 @@ all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID,
 for (i in 1:7) {
     tmp.ch  <- LETTERS[i]
     tmp.d   <- paste("d",tmp.ch,sep="")
-    
     all.copy[, tmp.d] <- as.vector(unlist(tapply(all.copy[,tmp.ch], all.copy[,c("customer_ID")], calcDiff)))
 }
 
@@ -162,14 +166,19 @@ for (i in 1:7) {
     tmp.ch  <- LETTERS[i]
     tmp.d   <- paste("d",tmp.ch,sep="")
     tmp.n   <- paste("n",tmp.ch,sep="")
-    
     all.copy[, tmp.n] <- as.vector(unlist(tapply(all.copy[,tmp.d], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
 }
 
-##------------------------------------------------------------------
-## Notes
-##------------------------------------------------------------------
-## can have locations in two states (e.g., neighboring states like KS/MO)
+## clean the day fraction difference
+all.copy$custday_key    <- paste(all.copy$customer_ID, all.copy$day, sep="_")
+all.copy$dayfrac.diff[ !duplicated(all.copy$custday_key) ] <- 0
+
+## create a last-observation flag for each customer
+num.cust <- length(all.copy$customer_ID)
+last.idx <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
+
+all.copy$last_fl            <- 0
+all.copy$last_fl[last.idx]  <- 1
 
 
 ##------------------------------------------------------------------
