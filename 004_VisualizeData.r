@@ -101,7 +101,7 @@ for (i in 1:1) {
     tmp.filename    <- paste(figdir, "Boxplot","CostVs","C_Previous",".pdf",sep="")
     tmp.frm         <- as.formula(paste("cost~","C_previous",sep=""))
     pdf(tmp.filename)
-    boxplot(tmp.frm, data=all.copy, col="steelblue")tab
+    boxplot(tmp.frm, data=all.copy, col="steelblue")
     dev.off()
 
     ## duration_previous
@@ -112,10 +112,6 @@ for (i in 1:1) {
     dev.off()
     
 }
-
-
-
-#risk_factor.r C_previous.r duration_previous.r car_value.r
 
 ##------------------------------------------------------------------
 ## Boxplots of Cost vs. [Replacement] Other Factors

@@ -17,12 +17,14 @@ replaceBads <- function(x) {
     
     ## no bads
     if (nbad == 0) {
+        
         return(x)
+        
     ## all bad
     } else if (nx == nbad) {
         
         if (class(x) == "character") {
-            return(rep("x", nx))
+            return(rep("z", nx))
         } else {
             return(rep(-9, nx))
         }
@@ -30,13 +32,13 @@ replaceBads <- function(x) {
     ## some bad, some good
     } else {
         
-        ## use a table to isolate cases where multiple values exist
-        x.tbl <- table(x)
-        
-        ## use majority value as the replacement
+        ## use a table to isolate cases where multiple values exist,
+        ## and also use the majority value as the replacement
         if (class(x) == "character") {
-            swap.x <- as.character(names(x.tbl[ which(x.tbl == max(x.tbl)) ])[1])
+            x.tbl   <- table(x[x != ""])
+            swap.x  <- as.character(names(x.tbl[ which(x.tbl == max(x.tbl)) ])[1])
         } else {
+            x.tbl   <- table(x[!is.na(x)])
             swap.x <- as.numeric(names(x.tbl[ which(x.tbl == max(x.tbl)) ])[1])
         }
         return(rep(swap.x, nx))

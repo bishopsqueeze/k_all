@@ -181,8 +181,8 @@ if ((i %% 100) == 0) { cat("Iteration =", i, "\n")}
 ##------------------------------------------------------------------
 ## Transform the tr.match matrix into a data frame
 ##------------------------------------------------------------------
-tr.match            <- as.data.frame(tr.match)
-tr.match$customer_ID <- as.integer(tr.match$customer_ID)
+tr.match                <- as.data.frame(tr.match)
+tr.match$customer_ID    <- as.integer(tr.match$customer_ID)
 
 ####################################################################
 

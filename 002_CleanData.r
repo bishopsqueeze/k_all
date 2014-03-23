@@ -50,13 +50,6 @@ all.bl <- apply(all.data, 2, function(x){sum(ifelse(x=="", 1, 0))})
 all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
 
 ##------------------------------------------------------------------
-## Replace car_value factors with a numeric code
-##------------------------------------------------------------------
-tmp.ch          <- as.character(all.data$car_value)
-tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode blanks as "z"
-num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)})))
-
-##------------------------------------------------------------------
 ## Replace state factors with a numeric code
 ##------------------------------------------------------------------
 tmp.state   <- as.character(all.data$state)
@@ -72,7 +65,7 @@ num.min    <- as.numeric(substr(all.data$time,1,2))*60 + as.numeric(substr(all.d
 ## Create a copy & load the additional data
 ##------------------------------------------------------------------
 all.copy                <- all.data
-all.copy$car_value      <- as.character(all.copy$car_value) ##
+all.copy$car_value      <- as.character(all.copy$car_value)
 
 ##------------------------------------------------------------------
 ## Clean bads
@@ -99,6 +92,13 @@ for (i in 1:length(scrub.cols)) {
         all.copy[, new.col] <- as.vector(unlist(tapply(all.copy[,tmp.col], all.copy$customer_ID, FUN=replaceBads)))
     }
 }
+
+##------------------------------------------------------------------
+## Replace scrubbed car_value factors with a numeric code
+##------------------------------------------------------------------
+tmp.ch          <- as.character(all.copy$car_value.r)
+tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode blanks as "z"
+num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)})))
 
 ##------------------------------------------------------------------
 ## Normalize numeric ranges
@@ -131,9 +131,17 @@ all.copy$car_age.n      <- norm.carage
 ##------------------------------------------------------------------
 
 ## customer-day index
-##all.copy$cust_day   <- factor(paste(all.copy$customer_ID, all.copy$day, sep="_"))
-## period-over-period time differences (by customer_ID && day) -- but list names may be reordered ...
-##all.copy$dtime.n  <- tapply(all.copy$time.n, all.copy$cust_day, calcDiff)
+#all.copy$cust_day   <- factor(paste(all.copy$customer_ID, all.copy$day, sep="_"))
+#
+#   ## period-over-period time differences (by customer_ID && day) -- but list names may be reordered ...
+#   tmp.list    <- tapply(all.copy$time.n, all.copy$cust_day, calcDiff)
+#   tmp.names   <- names(tmp.list)
+#
+#   ## isolate unique customer-day values
+#   uniq.cd     <- as.character(unique(all.copy$cust_day))
+#
+#    tmp <- unlist(sapply(uniq.cd, function(x){tmp.list[[x]]}))
+
 
 ## period-over-period cost differences (by customer_ID)
 all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
@@ -159,8 +167,10 @@ for (i in 1:7) {
 }
 
 ##------------------------------------------------------------------
-##
+## Notes
 ##------------------------------------------------------------------
+## can have locations in two states (e.g., neighboring states like KS/MO)
+
 
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
