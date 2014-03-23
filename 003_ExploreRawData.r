@@ -24,7 +24,10 @@ load("002_allstateRawData.Rdata")
 columnLookup <- function(x, t) { return(which(t %in% x)) }
 
 ##------------------------------------------------------------------
-## Create binary indicators for each variable
+## Step 1:  Create a matrix that contains a flag indicating
+## which choice for each of the seven options is selected at each
+## shopping point.  This is basically a less compact way of
+## representing the A-G columns.
 ##------------------------------------------------------------------
 tmp.index   <- (all.copy$id_fl == 1)
 tmp.train   <- all.copy[tmp.index, ]
@@ -65,7 +68,10 @@ system.time({
 })
 
 ##------------------------------------------------------------------
-## Create new columns to hold match statistics
+## Step 2:  Create a matrix to hold "match statistics" for each
+## shopping point associated with each customer.  This allows us
+## to see which of the intermediate selections match either [1]
+## the prior selection or [2] the final purchase.
 ##------------------------------------------------------------------
 tr.match            <- matrix(data=0, nrow=nrow(tmp.train), ncol=4)
 colnames(tr.match)  <- c("customer_ID","shopping_pt","match_prev","match_fin")
@@ -73,34 +79,41 @@ colnames(tr.match)  <- c("customer_ID","shopping_pt","match_prev","match_fin")
 tr.match[, c("customer_ID", "shopping_pt")] <- as.matrix(tmp.train[, c("customer_ID", "shopping_pt")])
 
 ##------------------------------------------------------------------
-## Customer count
+## Step 3: Loop over each customer and for each shopping point in the
+## customer-specific dataset, period-over-period transition matrix
+## and the jump-to-purchase transition matrix.
 ##------------------------------------------------------------------
+
+## get a customer count
 uniq.cust <- unique(tr.match[,c("customer_ID")])
 num.cust  <- length(uniq.cust)
 
-##------------------------------------------------------------------
-## Range of customer interactions  
-##------------------------------------------------------------------
+## compute the range of customer interactions
 tr.freqByCust   <- table(tr.match[,c("customer_ID")])
 tr.freqAgg      <- table(table(tr.match[,c("customer_ID")]))
 
 ##------------------------------------------------------------------
-## Create one-step and jump-to-purchase transition matrices 
+## create one-step and jump-to-purchase transition matrices
 ##------------------------------------------------------------------
+
+## period-over-period transition matrix
 tarr 			<- array(0, dim=c(ncol(fl), ncol(fl), 13))
 colnames(tarr) 	<- colnames(fl)
 rownames(tarr) 	<- colnames(fl)
 
+## jump-to-purchase transition matrix
 parr			<- array(0, dim=c(ncol(fl), ncol(fl), 13))
 colnames(parr) 	<- colnames(fl)
 rownames(parr) 	<- colnames(fl)
 
+## column name set-up data
 col.names 		<- colnames(fl)
 col.idx 		<- which(colnames(fl) %in% col.names)
 col.num			<- length(col.idx)
 
-
-#for (i in 1:1) {
+##------------------------------------------------------------------
+## Build the transition matrices
+##------------------------------------------------------------------
 for (i in 1:num.cust) {
 
 	row.idx		<- which(tr.match[,c("customer_ID")] == uniq.cust[i])
@@ -164,6 +177,53 @@ for (i in 1:num.cust) {
 
 if ((i %% 100) == 0) { cat("Iteration =", i, "\n")}
 }
+
+##------------------------------------------------------------------
+## Transform the tr.match matrix into a data frame
+##------------------------------------------------------------------
+tr.match            <- as.data.frame(tr.match)
+tr.match$customer_ID <- as.integer(tr.match$customer_ID)
+
+####################################################################
+
+##------------------------------------------------------------------
+## Create normalized transition matrices - Not sure what this gets me
+##------------------------------------------------------------------
+
+## grab the number of shopping points
+sh_pt       <- subset(tmp.train, record_type == 0)
+sh_pt.tbl   <- table(sh_pt$shopping_pt)
+sh_pt.num   <- length(sh_pt.tbl)
+
+## compute the transition probabilities for each choice
+tarr.n      <- tarr
+parr.n      <- parr
+for (i in 1:(sh_pt.num)) {
+    
+    ## tarr has non-zero values between 2:13
+    tarr.n[,,i+1] <- tarr[,,i+1] / sh_pt.tbl[i]
+    
+    ## parr has non-zero values between 1:12
+    parr.n[,,i] <- parr[,,i] / sh_pt.tbl[i]
+    
+}
+
+####################################################################
+
+##------------------------------------------------------------------
+## Determine if there are any forbidden transitions
+##------------------------------------------------------------------
+
+choice.grid     <- expand.grid(A=c(0,1,2), B=c(0,1), C=c(1,2,3,4), D=c(1,2,3), E=c(0,1), F=c(0,1,2,3), G=c(1,2,3,4))
+choice.vec      <- apply(choice.grid, 1, function(x){paste(x,collapse="")})
+purchase.vec    <- apply(tmp.train[(tmp.train$record_type == 1), LETTERS[1:7]], 1, function(x){paste(x,collapse="")})
+
+purchase.tbl        <- table(purchase.vec)
+choice.tbl          <- 0*vector(,length=length(choice.vec))
+names(choice.tbl)   <- choice.vec
+
+choice.tbl[ which(choice.vec %in% names(purchase.tbl)) ] <- purchase.tbl
+choice.tbl  <- choice.tbl / sum(choice.tbl)
 
 
 ##------------------------------------------------------------------
