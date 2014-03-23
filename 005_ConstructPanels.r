@@ -24,7 +24,8 @@ load("002_allstateRawData.Rdata")
 ##------------------------------------------------------------------
 
 for (n in 0:1) {
-
+##for (n in 1:1) {
+    
     ##------------------------------------------------------------------
     ## Subset the data via id_fl (0 == test, 1 == train)
     ##------------------------------------------------------------------
@@ -63,7 +64,7 @@ for (n in 0:1) {
     }
 
     ##------------------------------------------------------------------
-    ## Load the panels
+    ## Load the panels -- Slow even though all matrix manipulations
     ##------------------------------------------------------------------
 
     ## identify unique customers
@@ -73,7 +74,7 @@ for (n in 0:1) {
     col.numbers <- 1:7
 
     ## track runtime
-    system.time({
+    #system.time({
     
     ## loop over all the custmomers and populate the choice history
     for (i in 1:num.cust) {
@@ -111,8 +112,7 @@ for (n in 0:1) {
 	
         if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
     }
-    
-    }) ## end of system.time
+    #}) ## end of system.time
 
 
     ##------------------------------------------------------------------
@@ -121,11 +121,17 @@ for (n in 0:1) {
     df.hist             <- as.data.frame(ch.hist)
     rownames(df.hist)   <- NULL
     
-    ## define separate training and test panels
+    ##------------------------------------------------------------------
+    ## write separate training and test panels
+    ##------------------------------------------------------------------
     if (n == 1) {
-        all.train <- cbind(smp, df.hist)
+        all.train   <- cbind(smp, df.hist)
+        ch.train    <- ch.hist
+        save(all.copy, all.train, ch.train, file="005_allstateRawData_Train.Rdata")
     } else {
-        all.test <- cbind(smp, df.hist)
+        all.test    <- cbind(smp, df.hist)
+        ch.test     <- ch.hist
+        save(all.copy, all.test, ch.test, file="005_allstateRawData_Test.Rdata")
     }
 
 } ## end of the main for-loop
@@ -134,7 +140,7 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-#save(all.copy, all.train, all.test, file="004_allstateRawData_Test.Rdata")
+##save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
 
 
 
