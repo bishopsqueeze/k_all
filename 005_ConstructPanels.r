@@ -35,6 +35,7 @@ for (n in 0:1) {
     ## Make a copy of a slim version of the data (panel)
     ##------------------------------------------------------------------
     panel <- as.matrix(smp[ , c(c("customer_ID", "record_type"), LETTERS[1:7])])
+    cost  <- as.matrix(smp[ ,   c("customer_ID", "record_type", "cost")])
 
     ##------------------------------------------------------------------
     ## get the maximum number of touches in the file
@@ -55,6 +56,14 @@ for (n in 0:1) {
     ch.hist <- matrix(0, nrow=nrow(panel), ncol=length(col.headers))
     colnames(ch.hist) <- col.headers
     rownames(ch.hist) <- panel[ , c("customer_ID")]
+
+    ##------------------------------------------------------------------
+    ## Create a matrix to hold the terminal and all prior costs (ch.cost)
+    ##------------------------------------------------------------------
+    col.headers	<- paste("cost",seq(0,(max.touch-1),1),sep="")
+    ch.cost     <- matrix(0, nrow=nrow(panel), ncol=length(col.headers))
+    colnames(ch.cost) <- col.headers
+    rownames(ch.cost) <- panel[ , c("customer_ID")]
 
     ##------------------------------------------------------------------
     ## Load a matrix of purchase data (if the train dataset)
@@ -84,6 +93,7 @@ for (n in 0:1) {
 	
         ## isolate that slice of data
         tmp.smp	<- panel[ row.idx, ]
+        tmp.amt <- cost[ row.idx, ]
         num.smp	<- nrow(tmp.smp)
 	
         ## isolate the terminal data for each customer
@@ -93,6 +103,7 @@ for (n in 0:1) {
     
         ## grab the choice history matrix
         tmp.hist  <- ch.hist[ row.idx, ]
+        tmp.cost  <- ch.cost[ row.idx, ]
     
         ## loop over each row in the choice history.  for that row,
         ## load the terminal and all prior choice observations
@@ -106,9 +117,11 @@ for (n in 0:1) {
             ## walk back from current obs. and populate prior observations
             for (k in 1:j) {
                 tmp.hist[j, (7*k + col.numbers)] <- tmp.smp[(j-(k-1)), (col.numbers+2)]
+                tmp.cost[j, k]                   <- tmp.amt[(j-(k-1)), 3]
             }
         }
         ch.hist[ row.idx, ] <- tmp.hist
+        ch.cost[ row.idx, ] <- tmp.cost
 	
         if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
     }
@@ -119,19 +132,23 @@ for (n in 0:1) {
     ## combine the augmeneted data into a single panel
     ##------------------------------------------------------------------
     df.hist             <- as.data.frame(ch.hist)
+    df.cost             <- as.data.frame(ch.cost)
     rownames(df.hist)   <- NULL
+    rownames(df.cost)   <- NULL
     
     ##------------------------------------------------------------------
     ## write separate training and test panels
     ##------------------------------------------------------------------
     if (n == 1) {
-        all.train   <- cbind(smp, df.hist)
-        ch.train    <- ch.hist
-        save(all.copy, all.train, ch.train, file="005_allstateRawData_Train.Rdata")
+        all.train   <- cbind(smp, df.cost, df.hist)
+        hist.train  <- ch.hist
+        cost.train  <- ch.cost
+        save(all.copy, all.train, hist.train, cost.train, file="005_allstateRawData_Train.Rdata")
     } else {
-        all.test    <- cbind(smp, df.hist)
-        ch.test     <- ch.hist
-        save(all.copy, all.test, ch.test, file="005_allstateRawData_Test.Rdata")
+        all.test    <- cbind(smp, df.cost, df.hist)
+        hist.test     <- ch.hist
+        cost.test     <- ch.cost
+        save(all.copy, all.test, hist.test, cost.test, file="005_allstateRawData_Test.Rdata")
     }
 
 } ## end of the main for-loop
@@ -140,7 +157,7 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-##save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
+save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
 
 
 

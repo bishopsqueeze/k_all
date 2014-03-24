@@ -59,3 +59,24 @@ calcDiff    <- function(x) {
         return(c(0, diff(x)))
     }
 }
+
+
+
+##------------------------------------------------------------------
+## <function> :: convert.magic
+##------------------------------------------------------------------
+## A function to perform a type switch on a data.frame
+##------------------------------------------------------------------
+convert.magic   <- function(obj, col, type) {
+    
+    ## isolate the columns to convert
+    idx <- which(colnames(obj) %in% col)
+    
+    ## loop over the columns and convert via a swtich()
+    for (i in 1:length(idx)) {
+        FUN <- switch(type[i], character = as.character, numeric = as.numeric, factor = as.factor)
+        obj[, idx[i]]   <- FUN(obj[, idx[i]])
+    }    
+    return(obj)
+}
+

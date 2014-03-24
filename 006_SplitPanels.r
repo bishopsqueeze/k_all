@@ -52,6 +52,8 @@ panel.list  <- list()
 ## that all of prior choice variables lie to the right of this column
 ##------------------------------------------------------------------
 let.idx     <- which(colnames(smp) == "AT")
+cost.idx    <- which(colnames(smp) == "cost0")
+
 
 ##------------------------------------------------------------------
 ## Loop over the time/choice combinations and load a separate panel
@@ -65,6 +67,9 @@ for (i in 1:11) {
         tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
         
         row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )     ## load non-purchase points
+    /*
+     * need to rework this b/c of the new cost data
+     */
         tmp.dat     <- smp[row.idx, c(1:(let.idx-1), let.idx:(let.idx+((i+1)*7)-1))]    ## load all prior decision info
         
         ## identify terminal choices to drop from this panel

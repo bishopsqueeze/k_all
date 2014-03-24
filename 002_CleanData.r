@@ -173,13 +173,45 @@ for (i in 1:7) {
 all.copy$custday_key    <- paste(all.copy$customer_ID, all.copy$day, sep="_")
 all.copy$dayfrac.diff[ !duplicated(all.copy$custday_key) ] <- 0
 
-## create a last-observation flag for each customer
-num.cust <- length(all.copy$customer_ID)
-last.idx <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
+## create a cumulative dayfrac variable
+all.copy$dayfrac.cum    <- as.vector(unlist(tapply(all.copy$dayfrac.diff, all.copy$customer_ID, function(x){cumsum(x)})))
 
+## create a last-observation flag for each customer
+num.cust                    <- length(all.copy$customer_ID)
+last.idx                    <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
 all.copy$last_fl            <- 0
 all.copy$last_fl[last.idx]  <- 1
 
+##------------------------------------------------------------------
+## Re-code variables with missings
+##------------------------------------------------------------------
+all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]   <- 5
+all.copy$location.r[ which(all.copy$location.r == -9) ]      <- 99999
+
+
+##------------------------------------------------------------------
+## Attempt to identify location-specific clusters
+##------------------------------------------------------------------
+
+## create location-specific summary data
+cl.data <- data.frame(
+                    cost.mean = tapply(all.copy$cost.nrm, all.copy$location.r, mean, na.rm=TRUE),
+                    car_age.mean = tapply(all.copy$car_age.nrm, all.copy$location.r, mean, na.rm=TRUE),
+                    home.frac = tapply(all.copy$homeowner, all.copy$location.r, function(x){sum(x)/length(x)}),
+                    married.frac = tapply(all.copy$married_couple, all.copy$location.r, function(x){sum(x)/length(x)})
+                    )
+
+## define the cluster
+cl.res  <- hclust(dist(cl.data), method = "ward")
+cl.memb <- cutree(cl.res, k = 10)
+
+## load the results
+hc <- rep(0, nrow(all.copy))
+for (i in 1:length(cl.memb)) {
+    tmp.idx <- which( all.copy$location.r == as.numeric(names(cl.memb[i])) )
+    hc[tmp.idx] <- cl.memb[i]
+}
+all.copy$hc <- hc
 
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
