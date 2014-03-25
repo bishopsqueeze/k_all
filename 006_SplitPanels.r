@@ -20,103 +20,123 @@ rm(list=ls())
 setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 
 ##------------------------------------------------------------------
-## Load data
+## One loop for test data (0) and one loop for training data (1)
 ##------------------------------------------------------------------
-load("005_allstateRawData_Train.Rdata")
+for (n in 0:1) {
+    
+    ##------------------------------------------------------------------
+    ## Load data
+    ##------------------------------------------------------------------
+    if (n == 0) {
+        load("005_allstateRawData_Test.Rdata")
+        smp <- all.test; rm(all.test, all.copy, cost.test, hist.test)
+    } else {
+        load("005_allstateRawData_Train.Rdata")
+        smp <- all.train; rm(all.train, all.copy, cost.train, hist.train)
+    }
 
-##------------------------------------------------------------------
-## Work with a copy
-##------------------------------------------------------------------
-smp <- all.train; rm(all.train, all.copy, ch.train)
+    ##------------------------------------------------------------------
+    ## Drop columns
+    ##------------------------------------------------------------------
 
-##------------------------------------------------------------------
-## Drop columns
-##------------------------------------------------------------------
+    ##------------------------------------------------------------------
+    ## Isolate the number of timesteps and choices
+    ##------------------------------------------------------------------
+    tvec    <- unique(smp$shopping_pt)  ## timesteps
+    tnum    <- length(tvec)
 
-##------------------------------------------------------------------
-## Isolate the number of timesteps and choices
-##------------------------------------------------------------------
-tvec    <- unique(smp$shopping_pt)  ## timesteps
-tnum    <- length(tvec)
+    cvec    <- LETTERS[1:7]             ## choices
+    cnum    <- length(cvec)
 
-cvec    <- LETTERS[1:7]             ## choices
-cnum    <- length(cvec)
+    ##------------------------------------------------------------------
+    ## Create a placeholder list
+    ##------------------------------------------------------------------
+    panel.list  <- list()
 
-##------------------------------------------------------------------
-## Create a placeholder list
-##------------------------------------------------------------------
-panel.list  <- list()
+    ##------------------------------------------------------------------
+    ## Location of the first (of N) choice columns -- this script presumes
+    ## that all of prior choice variables lie to the right of this column
+    ##------------------------------------------------------------------
+    let.idx     <- which(colnames(smp) == "AT")
+    cost.idx    <- which(colnames(smp) == "cost0")
 
-##------------------------------------------------------------------
-## Location of the first (of N) choice columns -- this script presumes
-## that all of prior choice variables lie to the right of this column
-##------------------------------------------------------------------
-let.idx     <- which(colnames(smp) == "AT")
-cost.idx    <- which(colnames(smp) == "cost0")
-
-
-##------------------------------------------------------------------
-## Loop over the time/choice combinations and load a separate panel
-## for each combination [e.g., (shopping_pt == 2) & (the "F" option)]
-##------------------------------------------------------------------
-for (i in 1:11) {
-    cat("Iteration ",i, " ... of 11 \n")
-    for (j in 1:cnum) {
+    ##------------------------------------------------------------------
+    ## Loop over the time/choice combinations and load a separate panel
+    ## for each combination [e.g., (shopping_pt == 2) & (the "F" option)]
+    ##------------------------------------------------------------------
+    for (i in 1:11) {
+        cat("Iteration ",i, " ... of 11 \n")
+        for (j in 1:cnum) {
         
-        tmp.time    <- tvec[i]  ## the shopping_pt (1, 2, 3, ...)
-        tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
+            tmp.time    <- tvec[i]  ## the shopping_pt (1, 2, 3, ...)
+            tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
         
-        row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )     ## load non-purchase points
-    /*
-     * need to rework this b/c of the new cost data
-     */
-        tmp.dat     <- smp[row.idx, c(1:(let.idx-1), let.idx:(let.idx+((i+1)*7)-1))]    ## load all prior decision info
+            row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )     ## load non-purchase points
         
-        ## identify terminal choices to drop from this panel
-        drop.let    <- paste(LETTERS[which(!(paste(LETTERS[1:7],"T",sep="") %in% paste(tmp.choice,"T",sep="")))],"T", sep="")
+            ## add the new cost data
+            tmp.dat     <- smp[row.idx, c(1:(cost.idx-1),  (cost.idx):(cost.idx+i-1), let.idx:(let.idx+((i+1)*7)-1))]    ## load all prior decision info
         
-        ## drop the irrelevant terminal choices
-        tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% drop.let) ]
+            ##------------------------------------------------------------------
+            ## originally I created a separate panel for each of the shopping_pt
+            ## and letter combinations; however, I think I prefer just having a
+            ## panel for each shopping_pt.  So, I moved the panel ID info out of
+            ## the interior loop.  Keeping the prior info so I can return to the
+            ## old form quickly.
+            ##------------------------------------------------------------------
+            ## identify terminal choices to drop from this panel
+            ##drop.let    <- paste(LETTERS[which(!(paste(LETTERS[1:7],"T",sep="") %in% paste(tmp.choice,"T",sep="")))],"T", sep="")
         
-        ## drop the original "letter" variables b/c they're included elsewhere
-        tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% LETTERS[1:7])]
+            ## drop the irrelevant terminal choices
+            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% drop.let) ]
         
-        ## drop redundant columns
-        tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% c("record_type"))]
+            ## drop the original "letter" variables b/c they're included elsewhere
+            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% LETTERS[1:7])]
         
-        ## define the panel ID
-        panel_id    <- paste(   tmp.choice,
-                                ifelse(tmp.time < 10, paste("0",tmp.time,sep=""), tmp.time),
-                                sep="_")
+            ## drop redundant columns
+            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% c("record_type"))]
+        }
+    
+    ## define the panel ID
+    #panel_id <- paste(tmp.choice, ifelse(tmp.time < 10, paste("0",tmp.time,sep=""), tmp.time), sep="_")
+    panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
+    
+    ## define the panel ID
+    #tmp.term    <- paste(tmp.choice, "T", sep="")
+    #tmp.colidx  <- which( colnames(tmp.dat) %in% c("customer_ID", "shopping_pt", tmp.term) )
                                 
-        ## define the panel ID
-        tmp.term    <- paste(tmp.choice, "T", sep="")
-        #tmp.colidx  <- which( colnames(tmp.dat) %in% c("customer_ID", "shopping_pt", tmp.term) )
-                                
-        ## load the raw data
-        panel.list[[panel_id]]$term <- tmp.term
-        panel.list[[panel_id]]$data <- tmp.dat
-        panel.list[[panel_id]]$len  <- nrow(tmp.dat)
+    ## load the raw data
+    #panel.list[[panel_id]]$term <- tmp.term
+    panel.list[[panel_id]]$sp <- panel_id
+    panel.list[[panel_id]]$data <- tmp.dat
+    panel.list[[panel_id]]$len  <- nrow(tmp.dat)
  
     }
-}
 
-##------------------------------------------------------------------
-## Write the full panel to an .Rdata file
-##------------------------------------------------------------------
-save(panel.list, file="006_allstatePanelData_Train.Rdata")
+    ##------------------------------------------------------------------
+    ## Write the full panel to an .Rdata file
+    ##------------------------------------------------------------------
+    if (n == 0) {
+        save(panel.list, file="006_allstatePanelData_Test.Rdata")
+    } else {
+        save(panel.list, file="006_allstatePanelData_Train.Rdata")
+    }
 
-##------------------------------------------------------------------
-## Write individual panels to separate .Rdata files
-##------------------------------------------------------------------
-panel.names <- names(panel.list)
+    ##------------------------------------------------------------------
+    ## Write individual panels to separate .Rdata files
+    ##------------------------------------------------------------------
+    panel.names <- names(panel.list)
 
-for (i in 1:length(panel.names)) {
-    tmp.panel       <- panel.names[i]
-    tmp.filename    <- paste("./panels/006_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
-    tmp.object      <- panel.list[[tmp.panel]]
-    save(tmp.object, file=tmp.filename)
-}
-
+    for (i in 1:length(panel.names)) {
+        tmp.panel       <- panel.names[i]
+        if (n == 0) {
+            tmp.filename    <- paste("./panels/006_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
+        } else {
+            tmp.filename    <- paste("./panels/006_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
+        }
+        tmp.object      <- panel.list[[tmp.panel]]
+        save(tmp.object, file=tmp.filename)
+    }
+    
+} ## end of train/test loop
 
 
