@@ -157,7 +157,7 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
+save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test ,file="005_allstateRawData.Rdata")
 
 
 
