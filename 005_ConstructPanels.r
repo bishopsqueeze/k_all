@@ -17,7 +17,7 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 ##------------------------------------------------------------------
 ## Load data
 ##------------------------------------------------------------------
-load("002_allstateRawData.Rdata")
+load("002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
 ##------------------------------------------------------------------
 ## Load the panel data
@@ -157,7 +157,7 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-##save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
+save(all.copy, all.train, all.test, ch.train, ch.test,file="005_allstateRawData.Rdata")
 
 
 
