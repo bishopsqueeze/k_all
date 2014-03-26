@@ -112,37 +112,49 @@ for (i in 1:length(scrub.cols)) {
 ##------------------------------------------------------------------
 ## Replace scrubbed car_value factors with a numeric code
 ##------------------------------------------------------------------
+
+## first do a simple replacement
 tmp.ch          <- as.character(all.copy$car_value.r)
 tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode remaining blanks as "z"
 num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)})))
 
+## there are still some cars in the test data (only) with "z" ... median replace those
+num.car_value[num.car_value == 26] <- median(num.car_value[num.car_value != 26])
+
+##------------------------------------------------------------------
+## Compute a truncated car_age to avoid sparsely populated regions
+##------------------------------------------------------------------
+tr.car_age      <- ifelse(all.copy$car_age >= 30, 30, all.copy$car_age)
+
 ##------------------------------------------------------------------
 ## Normalize numeric ranges
+## - 03/26/2014 - save normalization for individual panels
 ##------------------------------------------------------------------
-old         <- all.data$age_old
-norm.old    <- (old - min(old, na.rm=TRUE)) / (max(old, na.rm=TRUE) - min(old, na.rm=TRUE))
-
-young       <- all.data$age_young
-norm.young  <- (young - min(young, na.rm=TRUE)) / (max(young, na.rm=TRUE) - min(young, na.rm=TRUE))
-
-cost        <- all.data$cost
-norm.cost   <- (cost - mean(cost, na.rm=TRUE))/sd(cost, na.rm=TRUE)
-
-carage      <- all.data$car_age
-norm.carage <- (carage - min(carage, na.rm=TRUE)) / (max(carage, na.rm=TRUE) - min(carage, na.rm=TRUE))
+#old         <- all.data$age_old
+#norm.old    <- (old - min(old, na.rm=TRUE)) / (max(old, na.rm=TRUE) - min(old, na.rm=TRUE))
+#
+#young       <- all.data$age_young
+#norm.young  <- (young - min(young, na.rm=TRUE)) / (max(young, na.rm=TRUE) - min(young, na.rm=TRUE))
+#
+#cost        <- all.data$cost
+#norm.cost   <- (cost - mean(cost, na.rm=TRUE))/sd(cost, na.rm=TRUE)
+#
+#carage      <- all.data$car_age
+#norm.carage <- (carage - min(carage, na.rm=TRUE)) / (max(carage, na.rm=TRUE) - min(carage, na.rm=TRUE))
 
 ##------------------------------------------------------------------
 ## Append normalized variables
 ##------------------------------------------------------------------
 all.copy$car_value.num  <- num.car_value
+all.copy$car_age.tr     <- tr.car_age
 all.copy$state.num      <- num.state
 all.copy$time.num       <- num.min
 all.copy$dayfrac.nrm    <- num.min / (24*60)
 all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
-all.copy$age_old.nrm    <- norm.old
-all.copy$age_young.nrm  <- norm.young
-all.copy$cost.nrm       <- norm.cost
-all.copy$car_age.nrm    <- norm.carage
+#all.copy$age_old.nrm    <- norm.old
+#all.copy$age_young.nrm  <- norm.young
+#all.copy$cost.nrm       <- norm.cost
+#all.copy$car_age.nrm    <- norm.carage
 
 ##------------------------------------------------------------------
 ## Create additional variables
@@ -186,8 +198,7 @@ all.copy$last_fl[last.idx]  <- 1
 ## Re-code variables with missings
 ##------------------------------------------------------------------
 all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]   <- 5
-all.copy$location.r[ which(all.copy$location.r == -9) ]      <- 99999
-
+all.copy$location.r[ which(all.copy$location.r == -9) ]         <- 99999
 
 ##------------------------------------------------------------------
 ## Attempt to identify location-specific clusters
@@ -195,11 +206,11 @@ all.copy$location.r[ which(all.copy$location.r == -9) ]      <- 99999
 
 ## create location-specific summary data
 cl.data <- data.frame(
-                    cost.mean = tapply(all.copy$cost.nrm, all.copy$location.r, mean, na.rm=TRUE),
-                    car_age.mean = tapply(all.copy$car_age.nrm, all.copy$location.r, mean, na.rm=TRUE),
+                    cost.mean = tapply(all.copy$cost, all.copy$location.r, mean, na.rm=TRUE),
+                    rf.mean = tapply(all.copy$risk_factor.r, all.copy$location.r, mean, na.rm=TRUE),
+                    car_age.mean = tapply(all.copy$car_age, all.copy$location.r, mean, na.rm=TRUE),
                     home.frac = tapply(all.copy$homeowner, all.copy$location.r, function(x){sum(x)/length(x)}),
-                    married.frac = tapply(all.copy$married_couple, all.copy$location.r, function(x){sum(x)/length(x)})
-                    )
+                    married.frac = tapply(all.copy$married_couple, all.copy$location.r, function(x){sum(x)/length(x)})  )
 
 ## define the cluster
 cl.res  <- hclust(dist(cl.data), method = "ward")
@@ -213,10 +224,26 @@ for (i in 1:length(cl.memb)) {
 }
 all.copy$hc <- hc
 
+
+##------------------------------------------------------------------
+## Drop backfilled/superfluous columns
+##------------------------------------------------------------------
+drop.cols   <- c(
+                    ## replaced with numeric values
+                    "time", "state", "car_value.r",
+                    ## cleaned
+                    "location", "car_value", "risk_factor", "C_previous", "duration_previous",
+                    ## not needed
+                    "custday_key")
+
+## make a copy and then drop columns
+all.copy.orig   <- all.copy
+all.copy        <- all.copy.orig[ , -which(colnames(all.copy.orig) %in% drop.cols) ]
+
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.na, all.bl, all.copy, file="002_allstateRawData.Rdata")
+save(all.na, all.bl, all.copy, all.copy.orig, file="002_allstateRawData.Rdata")
 
 
 
