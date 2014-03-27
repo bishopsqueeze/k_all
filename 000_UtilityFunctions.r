@@ -80,3 +80,36 @@ convert.magic   <- function(obj, col, type) {
     return(obj)
 }
 
+
+
+##------------------------------------------------------------------
+## <function> :: gkTau
+##------------------------------------------------------------------
+gkTau    <- function(x, y) {
+
+    ## convert into a joint probability contingency table
+    Pij <- prop.table(table(x, y, useNA="ifany"))
+    
+    ## compute marginal probabilities
+    Pi  <- apply(Pij, 1, sum)
+    Pj  <- apply(Pij, 2, sum)
+    
+    ## compute V(y)
+    Vy  <- 1 - sum(Pj^2)
+    
+    ## compute V(x|y)
+    innerSum  <- apply(Pij^2, 1, sum)
+    Vybarx    <- 1 - sum(innerSum/Pi)
+    
+    ## compute the Goodman & Kruskal tau
+    return((Vy - Vybarx)/Vy)
+  
+}
+
+
+
+
+
+
+
+

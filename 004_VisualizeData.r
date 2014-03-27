@@ -19,6 +19,11 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 load("002_allstateRawData.Rdata")
 
 ##------------------------------------------------------------------
+## Source utility functions
+##------------------------------------------------------------------
+source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctions.r")
+
+##------------------------------------------------------------------
 ## Define figure directory
 ##------------------------------------------------------------------
 figdir  <- "/Users/alexstephens/Development/kaggle/allstate/figs/"
@@ -147,5 +152,40 @@ for (i in 1:1) {
     dev.off()
 }
 
+
+##------------------------------------------------------------------
+## Compute the gkTau relationship amongst each pair of final choices
+##------------------------------------------------------------------
+
+fin.ch  <- subset(all.copy, record_type == 1)
+tau.mat <- matrix(,nrow=7,ncol=7)
+rownames(tau.mat)   <- LETTERS[1:7]
+colnames(tau.mat)   <- LETTERS[1:7]
+
+for (i in 1:7) {
+    tmp.x   <- as.vector(fin.ch[, LETTERS[i]])
+    for (j in 1:7) {
+        tmp.y           <- as.vector(fin.ch[, LETTERS[j]])
+        tau.mat[i,j]    <- gkTau(tmp.x, tmp.y)
+    }
+}
+
+##------------------------------------------------------------------
+## Compute other correlation measures using the train panel
+##------------------------------------------------------------------
+
+
+##------------------------------------------------------------------
+## Clear the workspace
+##------------------------------------------------------------------
+rm(list=ls())
+
+##------------------------------------------------------------------
+## Set the working directory
+##------------------------------------------------------------------
+setwd("/Users/alexstephens/Development/kaggle/allstate/data")
+
+
+load("005_allstateRawData_Train.Rdata")
 
 
