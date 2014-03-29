@@ -169,6 +169,13 @@ all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
 ## Create additional variables
 ##------------------------------------------------------------------
 
+##
+## !!! identify cases where a variable changes
+##
+## create a flag or the number of changes? (or the fraction of changes)
+## tmp.check <- tapply(all.copy$married_couple, all.copy$customer_ID, function(x){length(unique(x))})
+##
+
 ## period-over-period cost differences (by customer_ID)
 all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
 
