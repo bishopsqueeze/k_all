@@ -20,8 +20,7 @@ library(doMC)
 ##------------------------------------------------------------------
 ## register cores
 ##------------------------------------------------------------------
-registerDoMC(2)
-
+registerDoMC(4)
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -117,7 +116,6 @@ scrub.cols   <- c(names(all.na), names(all.bl))
         }
     }
 
-
 ##------------------------------------------------------------------
 ## Replace scrubbed car_value factors with a numeric code
 ##------------------------------------------------------------------
@@ -136,23 +134,7 @@ num.car_value[num.car_value == 26] <- median(num.car_value[num.car_value != 26])
 tr.car_age      <- ifelse(all.copy$car_age >= 30, 30, all.copy$car_age)
 
 ##------------------------------------------------------------------
-## Normalize numeric ranges
-## - 03/26/2014 - save normalization for individual panels
-##------------------------------------------------------------------
-#old         <- all.data$age_old
-#norm.old    <- (old - min(old, na.rm=TRUE)) / (max(old, na.rm=TRUE) - min(old, na.rm=TRUE))
-#
-#young       <- all.data$age_young
-#norm.young  <- (young - min(young, na.rm=TRUE)) / (max(young, na.rm=TRUE) - min(young, na.rm=TRUE))
-#
-#cost        <- all.data$cost
-#norm.cost   <- (cost - mean(cost, na.rm=TRUE))/sd(cost, na.rm=TRUE)
-#
-#carage      <- all.data$car_age
-#norm.carage <- (carage - min(carage, na.rm=TRUE)) / (max(carage, na.rm=TRUE) - min(carage, na.rm=TRUE))
-
-##------------------------------------------------------------------
-## Append normalized variables
+## Append variables
 ##------------------------------------------------------------------
 all.copy$car_value.num  <- num.car_value
 all.copy$car_age.tr     <- tr.car_age
@@ -160,21 +142,10 @@ all.copy$state.num      <- num.state
 all.copy$time.num       <- num.min
 all.copy$dayfrac.nrm    <- num.min / (24*60)
 all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
-#all.copy$age_old.nrm    <- norm.old
-#all.copy$age_young.nrm  <- norm.young
-#all.copy$cost.nrm       <- norm.cost
-#all.copy$car_age.nrm    <- norm.carage
 
 ##------------------------------------------------------------------
 ## Create additional variables
 ##------------------------------------------------------------------
-
-##
-## !!! identify cases where a variable changes
-##
-## create a flag or the number of changes? (or the fraction of changes)
-## tmp.check <- tapply(all.copy$married_couple, all.copy$customer_ID, function(x){length(unique(x))})
-##
 
 ## period-over-period cost differences (by customer_ID)
 all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
@@ -182,25 +153,12 @@ all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, 
 ## cumulative cost differences (by customer_ID)
 all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
 
-## period-over-period change in each of the selection options
-#for (i in 1:7) {
-#   tmp.ch  <- LETTERS[i]
-#   tmp.d   <- paste("d",tmp.ch,sep="")
-#   all.copy[, tmp.d] <- as.vector(unlist(tapply(all.copy[,tmp.ch], all.copy[,c("customer_ID")], calcDiff)))
-#}
 ## [parallel] period-over-period change in each of the selection options
 tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
     as.vector(unlist(tapply(all.copy[,LETTERS[i]], all.copy[,c("customer_ID")], calcDiff)))
 }
 all.copy[, paste("d",LETTERS[1:7],sep="")] <- tmp.res
 
-## rolling total of period-over-period change in each of the selection options
-#for (i in 1:7) {
-#   tmp.ch  <- LETTERS[i]
-#   tmp.d   <- paste("d",tmp.ch,sep="")
-#   tmp.n   <- paste("n",tmp.ch,sep="")
-#   all.copy[, tmp.n] <- as.vector(unlist(tapply(all.copy[,tmp.d], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
-#}
 ## [parallel] rolling total of period-over-period change in each of the selection options
 tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
     as.vector(unlist(tapply(all.copy[,paste("d",LETTERS[i],sep="")], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
@@ -221,17 +179,17 @@ all.copy$last_fl            <- 0
 all.copy$last_fl[last.idx]  <- 1
 
 ## identify the number of changes (per customer) in a "static" form entry
-all.copy$day.u            <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$group_size.u     <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$homeowner.u      <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$car_age.u        <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$age_oldest.u     <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$age_youngest.u   <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$married_couple.u <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$car_value.u      <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$location.u       <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$C_previous.u     <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-all.copy$duration_previous.u  <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$day.u            <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
+all.copy$group_size.u     <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
+all.copy$homeowner.u      <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
+all.copy$car_age.u        <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
+all.copy$age_oldest.u     <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
+all.copy$age_youngest.u   <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
+all.copy$married_couple.u <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
+all.copy$car_value.u      <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
+all.copy$location.u       <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
+all.copy$C_previous.u     <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
+all.copy$duration_previous.u  <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique)))
 
 ## no fluctuation in state
 #a <- as.vector(unlist(tapply(all.copy$state.num, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
@@ -262,8 +220,6 @@ cl.memb <- cutree(cl.res, k = 10)
 ## load the results
 hc <- rep(0, nrow(all.copy))
 for (i in 1:length(cl.memb)) {
-    #    tmp.idx <- which( all.copy$location.r == as.numeric(names(cl.memb[i])) )
-    #    hc[tmp.idx] <- cl.memb[i]
     hc[which( all.copy$location.r == as.numeric(names(cl.memb[i])) )] <- cl.memb[i]
 }
 all.copy$hc <- hc

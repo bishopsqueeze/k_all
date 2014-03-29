@@ -46,7 +46,13 @@ replaceBads <- function(x) {
     
 }
 
-
+##------------------------------------------------------------------
+## <function> :: numUnique
+##------------------------------------------------------------------
+numUnique    <- function(x) {
+    y <- length(unique(x))
+    return( rep(y,length(x)) )
+}
 
 ##------------------------------------------------------------------
 ## <function> :: calcDiff
@@ -59,8 +65,6 @@ calcDiff    <- function(x) {
         return(c(0, diff(x)))
     }
 }
-
-
 
 ##------------------------------------------------------------------
 ## <function> :: convert.magic
@@ -79,8 +83,6 @@ convert.magic   <- function(obj, col, type) {
     }    
     return(obj)
 }
-
-
 
 ##------------------------------------------------------------------
 ## <function> :: gkTau
