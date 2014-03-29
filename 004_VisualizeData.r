@@ -170,10 +170,9 @@ for (i in 1:7) {
     }
 }
 
-##------------------------------------------------------------------
+##******************************************************************
 ## Compute other correlation measures using the train panel
-##------------------------------------------------------------------
-
+##******************************************************************
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -185,7 +184,129 @@ rm(list=ls())
 ##------------------------------------------------------------------
 setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 
+##------------------------------------------------------------------
+## Source utility functions
+##------------------------------------------------------------------
+source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctions.r")
 
+##------------------------------------------------------------------
+## Load data
+##------------------------------------------------------------------
 load("005_allstateRawData_Train.Rdata")
+
+
+##------------------------------------------------------------------
+## isolate the purchase point data
+##------------------------------------------------------------------
+fin.ch  <- subset(all.train, record_type == 1)
+fin.ch$u01  <- runif(nrow(fin.ch))
+fin.ch$n01  <- rnorm(nrow(fin.ch))
+
+##------------------------------------------------------------------
+## define a correlation matrices for all choices
+##------------------------------------------------------------------
+tau.mat.xy <- matrix(,nrow=7,ncol=7)
+tau.mat.yx <- matrix(,nrow=7,ncol=7)
+
+rownames(tau.mat.xy)   <- paste(LETTERS[1:7], "T", sep="")
+colnames(tau.mat.xy)   <- paste(LETTERS[1:7], "T", sep="")
+rownames(tau.mat.yx)   <- paste(LETTERS[1:7], "T", sep="")
+colnames(tau.mat.yx)   <- paste(LETTERS[1:7], "T", sep="")
+for (i in 1:7) {
+    tmp.x   <- as.factor(fin.ch[, paste(LETTERS[i],"T",sep="")])
+    for (j in 1:7) {
+        tmp.y           <- as.factor(fin.ch[, paste(LETTERS[j],"T",sep="")])
+        tau.mat.xy[i,j]    <- 100*gkTau(tmp.x, tmp.y)
+        tau.mat.yx[i,j]    <- 100*gkTau(tmp.y, tmp.x)
+    }
+}
+
+##------------------------------------------------------------------
+## define a correlation matrices for choice v. categorical variables
+##------------------------------------------------------------------
+cat.vars  <- c( c( "day",
+                "group_size",
+                "homeowner",
+                "married_couple",
+                "risk_factor.r",
+                "C_previous.r",
+                "car_value.num",
+                "hc",
+                "shopping_pt",
+                "state.num",
+                "location.r"),
+                c(paste("n",LETTERS[1:7],sep="")))
+
+cat.num <- length(cat.vars)
+
+tau.cat.xy <- matrix(,nrow=7,ncol=cat.num)
+tau.cat.yx <- matrix(,nrow=7,ncol=cat.num)
+rownames(tau.cat.xy)   <- LETTERS[1:7]
+rownames(tau.cat.yx)   <- LETTERS[1:7]
+colnames(tau.cat.xy)   <- cat.vars
+colnames(tau.cat.yx)   <- cat.vars
+for (i in 1:7) {
+    tmp.x   <- as.factor(fin.ch[, LETTERS[i]])
+    for (j in 1:cat.num) {
+        tmp.y           <- as.factor(fin.ch[, cat.vars[j]])
+        tau.cat.xy[i,j]    <- 100*gkTau(tmp.x, tmp.y)
+        tau.cat.yx[i,j]    <- 100*gkTau(tmp.y, tmp.x)
+    }
+}
+
+
+##------------------------------------------------------------------
+## define a correlation matrices for choice v. continuous variables
+##------------------------------------------------------------------
+con.vars  <- c( c( "car_age",
+                "age_oldest",
+                "age_youngest",
+                "cost",
+                "duration_previous.r",
+                "car_age.tr",
+                "time.num",
+                "dayfrac.nrm",
+                "dayfrac.diff",
+                "dayfrac.cum",
+                "dcost",
+                "ccost",
+                "u01",
+                "n01"), c(paste("cost",0:12,sep="")))
+
+
+con.num <- length(con.vars)
+
+tau.con.xy <- matrix(,nrow=7,ncol=con.num)
+tau.con.yx <- matrix(,nrow=7,ncol=con.num)
+rownames(tau.con.xy)   <- LETTERS[1:7]
+rownames(tau.con.yx)   <- LETTERS[1:7]
+colnames(tau.con.xy)   <- con.vars
+colnames(tau.con.yx)   <- con.vars
+for (i in 1:7) {
+    tmp.x   <- as.vector(fin.ch[, LETTERS[i]])
+    for (j in 1:con.num) {
+        tmp.y           <- as.vector(fin.ch[, con.vars[j]])
+        tau.con.xy[i,j]    <- 100*gkTau(tmp.x, tmp.y)
+        tau.con.yx[i,j]    <- 100*gkTau(tmp.y, tmp.x)
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

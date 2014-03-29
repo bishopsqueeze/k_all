@@ -14,6 +14,14 @@
 ##------------------------------------------------------------------
 ## Load libraries
 ##------------------------------------------------------------------
+library(foreach)
+library(doMC)
+
+##------------------------------------------------------------------
+## register cores
+##------------------------------------------------------------------
+registerDoMC(2)
+
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -94,20 +102,21 @@ all.copy$car_value      <- as.character(all.copy$car_value)
 ## columns to scrub
 scrub.cols   <- c(names(all.na), names(all.bl))
 
-## Loop over all of the columns to scrub
-for (i in 1:length(scrub.cols)) {
-
-    ## identify the column we're scrubbing
-    tmp.col <- scrub.cols[i]
-    new.col <- paste(tmp.col,".r", sep="")
-    
-    ## backfill NAs/blanks if possible
-    if ( tmp.col == "car_value") {
-        all.copy[, new.col] <- as.vector(unlist(tapply(as.character(all.copy[,tmp.col]), all.copy$customer_ID, FUN=replaceBads)))
-    } else {
-        all.copy[, new.col] <- as.vector(unlist(tapply(all.copy[,tmp.col], all.copy$customer_ID, FUN=replaceBads)))
+    ## Loop over all of the columns to scrub
+    for (i in 1:length(scrub.cols)) {
+        
+        ## identify the column we're scrubbing
+        tmp.col <- scrub.cols[i]
+        new.col <- paste(tmp.col,".r", sep="")
+        
+        ## backfill NAs/blanks if possible
+        if ( tmp.col == "car_value") {
+            all.copy[, new.col] <- as.vector(unlist(tapply(as.character(all.copy[,tmp.col]), all.copy$customer_ID, FUN=replaceBads)))
+        } else {
+            all.copy[, new.col] <- as.vector(unlist(tapply(all.copy[,tmp.col], all.copy$customer_ID, FUN=replaceBads)))
+        }
     }
-}
+
 
 ##------------------------------------------------------------------
 ## Replace scrubbed car_value factors with a numeric code
@@ -167,19 +176,29 @@ all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, 
 all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
 
 ## period-over-period change in each of the selection options
-for (i in 1:7) {
-    tmp.ch  <- LETTERS[i]
-    tmp.d   <- paste("d",tmp.ch,sep="")
-    all.copy[, tmp.d] <- as.vector(unlist(tapply(all.copy[,tmp.ch], all.copy[,c("customer_ID")], calcDiff)))
+#for (i in 1:7) {
+#   tmp.ch  <- LETTERS[i]
+#   tmp.d   <- paste("d",tmp.ch,sep="")
+#   all.copy[, tmp.d] <- as.vector(unlist(tapply(all.copy[,tmp.ch], all.copy[,c("customer_ID")], calcDiff)))
+#}
+## [parallel] period-over-period change in each of the selection options
+tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
+    as.vector(unlist(tapply(all.copy[,LETTERS[i]], all.copy[,c("customer_ID")], calcDiff)))
 }
+all.copy[, paste("d",LETTERS[1:7],sep="")] <- tmp.res
 
 ## rolling total of period-over-period change in each of the selection options
-for (i in 1:7) {
-    tmp.ch  <- LETTERS[i]
-    tmp.d   <- paste("d",tmp.ch,sep="")
-    tmp.n   <- paste("n",tmp.ch,sep="")
-    all.copy[, tmp.n] <- as.vector(unlist(tapply(all.copy[,tmp.d], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
+#for (i in 1:7) {
+#   tmp.ch  <- LETTERS[i]
+#   tmp.d   <- paste("d",tmp.ch,sep="")
+#   tmp.n   <- paste("n",tmp.ch,sep="")
+#   all.copy[, tmp.n] <- as.vector(unlist(tapply(all.copy[,tmp.d], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
+#}
+## [parallel] rolling total of period-over-period change in each of the selection options
+tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
+    as.vector(unlist(tapply(all.copy[,paste("d",LETTERS[i],sep="")], all.copy[,c("customer_ID")], function(x){cumsum((x!=0))} )))
 }
+all.copy[, paste("n",LETTERS[1:7],sep="")] <- tmp.res
 
 ## clean the day fraction difference
 all.copy$custday_key    <- paste(all.copy$customer_ID, all.copy$day, sep="_")
@@ -193,6 +212,23 @@ num.cust                    <- length(all.copy$customer_ID)
 last.idx                    <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
 all.copy$last_fl            <- 0
 all.copy$last_fl[last.idx]  <- 1
+
+## identify the number of changes (per customer) in a "static" form entry
+all.copy$day.u            <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$group_size.u     <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$homeowner.u      <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$car_age.u        <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$age_oldest.u     <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$age_youngest.u   <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$married_couple.u <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$car_value.u      <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$location.u       <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$C_previous.u     <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$duration_previous.u  <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+
+## no fluctuation in state
+#a <- as.vector(unlist(tapply(all.copy$state.num, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+#a <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
 
 ##------------------------------------------------------------------
 ## Re-code variables with missings
@@ -219,8 +255,9 @@ cl.memb <- cutree(cl.res, k = 10)
 ## load the results
 hc <- rep(0, nrow(all.copy))
 for (i in 1:length(cl.memb)) {
-    tmp.idx <- which( all.copy$location.r == as.numeric(names(cl.memb[i])) )
-    hc[tmp.idx] <- cl.memb[i]
+    #    tmp.idx <- which( all.copy$location.r == as.numeric(names(cl.memb[i])) )
+    #    hc[tmp.idx] <- cl.memb[i]
+    hc[which( all.copy$location.r == as.numeric(names(cl.memb[i])) )] <- cl.memb[i]
 }
 all.copy$hc <- hc
 
