@@ -49,6 +49,9 @@ replaceBads <- function(x) {
 ##------------------------------------------------------------------
 ## <function> :: numUnique
 ##------------------------------------------------------------------
+## Compute the number of unique elements in a vector, then return
+## that count as a vector equal in length to the input vector
+##------------------------------------------------------------------
 numUnique    <- function(x) {
     y <- length(unique(x))
     return( rep(y,length(x)) )
@@ -56,6 +59,8 @@ numUnique    <- function(x) {
 
 ##------------------------------------------------------------------
 ## <function> :: calcDiff
+##------------------------------------------------------------------
+## Calculate a vector difference and prepend a zero to the output
 ##------------------------------------------------------------------
 calcDiff    <- function(x) {
     nx  <- length(x)
@@ -86,6 +91,10 @@ convert.magic   <- function(obj, col, type) {
 
 ##------------------------------------------------------------------
 ## <function> :: gkTau
+##------------------------------------------------------------------
+## Compute (asymmetric) correlations for nominal variables.  The
+## result of gkTau(a,b) implies a predicts b to a degree specified
+## by the returned correlation value [0,1]
 ##------------------------------------------------------------------
 gkTau    <- function(x, y) {
 
