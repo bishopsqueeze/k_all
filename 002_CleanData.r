@@ -198,6 +198,18 @@ all.copy$risk_factor.u      <- as.vector(unlist(tapply(all.copy$risk_factor, all
 all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]   <- 5
 all.copy$location.r[ which(all.copy$location.r == -9) ]         <- 99999
 
+
+##------------------------------------------------------------------
+## Perform type conversions for factors
+##------------------------------------------------------------------
+factor.list <- c(   c("day", "group_size", "homeowner", "married_couple"),
+                    c("location.r", "risk_factor.r", "C_previous.r"),
+                    c("car_value.num", "state.num"),
+                    LETTERS[1:7],
+                    paste("d",LETTERS[1:7],sep=""))
+
+all.copy  <- convert.magic(all.copy, factor.list, rep("factor", length(factor.list)))
+
 ##------------------------------------------------------------------
 ## Drop backfilled/superfluous columns
 ##------------------------------------------------------------------
