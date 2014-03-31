@@ -51,7 +51,7 @@ tr$id_fl    <- as.integer(1)
 te$id_fl    <- as.integer(0)
 
 ##------------------------------------------------------------------
-## Combine and sort on customer ID
+## Combine and sort on (customer_ID, shopping_pt)
 ##------------------------------------------------------------------
 all.data    <- rbind(tr, te)
 all.data    <- all.data[ order(all.data$customer_ID, all.data$shopping_pt), ]
