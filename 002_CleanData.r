@@ -109,7 +109,7 @@ scrub.cols   <- c(names(all.na), names(all.bl))
         new.col <- paste(tmp.col,".r", sep="")
         
         ## backfill NAs/blanks if possible
-        if ( tmp.col == "car_value") {
+        if (tmp.col == "car_value") {
             all.copy[, new.col] <- as.vector(unlist(tapply(as.character(all.copy[,tmp.col]), all.copy$customer_ID, FUN=replaceBads)))
         } else {
             all.copy[, new.col] <- as.vector(unlist(tapply(all.copy[,tmp.col], all.copy$customer_ID, FUN=replaceBads)))
@@ -129,15 +129,15 @@ num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)
 num.car_value[num.car_value == 26] <- median(num.car_value[num.car_value != 26])
 
 ##------------------------------------------------------------------
-## Compute a truncated car_age to avoid sparsely populated regions
+## Bin car ages into a decile factor
 ##------------------------------------------------------------------
-tr.car_age      <- ifelse(all.copy$car_age >= 30, 30, all.copy$car_age)
+car_age.decile  <- cut(all.copy$car_age, breaks=quantile(all.copy$car_age, probs=seq(0, 1, 0.1)), include.lowest=TRUE)
 
 ##------------------------------------------------------------------
 ## Append variables
 ##------------------------------------------------------------------
 all.copy$car_value.num  <- num.car_value
-all.copy$car_age.tr     <- tr.car_age
+all.copy$car_age.bin    <- car_age.decile
 all.copy$state.num      <- num.state
 all.copy$time.num       <- num.min
 all.copy$dayfrac.nrm    <- num.min / (24*60)
@@ -179,21 +179,18 @@ all.copy$last_fl            <- 0
 all.copy$last_fl[last.idx]  <- 1
 
 ## identify the number of changes (per customer) in a "static" form entry
-all.copy$day.u            <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
-all.copy$group_size.u     <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
-all.copy$homeowner.u      <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
-all.copy$car_age.u        <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
-all.copy$age_oldest.u     <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
-all.copy$age_youngest.u   <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
-all.copy$married_couple.u <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
-all.copy$car_value.u      <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
-all.copy$location.u       <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
-all.copy$C_previous.u     <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
+all.copy$day.u              <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
+all.copy$group_size.u       <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
+all.copy$homeowner.u        <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
+all.copy$car_age.u          <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
+all.copy$age_oldest.u       <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
+all.copy$age_youngest.u     <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
+all.copy$married_couple.u   <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
+all.copy$car_value.u        <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
+all.copy$location.u         <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
+all.copy$C_previous.u       <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
 all.copy$duration_previous.u  <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique)))
-
-## no fluctuation in state
-#a <- as.vector(unlist(tapply(all.copy$state.num, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
-#a <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, function(x){y<-length(unique(x)); return(rep(y,length(x)))})))
+all.copy$risk_factor.u      <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, numUnique)))
 
 ##------------------------------------------------------------------
 ## Re-code variables with missings
@@ -202,37 +199,14 @@ all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]   <- 5
 all.copy$location.r[ which(all.copy$location.r == -9) ]         <- 99999
 
 ##------------------------------------------------------------------
-## Attempt to identify location-specific clusters
-##------------------------------------------------------------------
-
-## create location-specific summary data
-cl.data <- data.frame(
-                    cost.mean = tapply(all.copy$cost, all.copy$location.r, mean, na.rm=TRUE),
-                    rf.mean = tapply(all.copy$risk_factor.r, all.copy$location.r, mean, na.rm=TRUE),
-                    car_age.mean = tapply(all.copy$car_age, all.copy$location.r, mean, na.rm=TRUE),
-                    home.frac = tapply(all.copy$homeowner, all.copy$location.r, function(x){sum(x)/length(x)}),
-                    married.frac = tapply(all.copy$married_couple, all.copy$location.r, function(x){sum(x)/length(x)})  )
-
-## define the cluster
-cl.res  <- hclust(dist(cl.data), method = "ward")
-cl.memb <- cutree(cl.res, k = 10)
-
-## load the results
-hc <- rep(0, nrow(all.copy))
-for (i in 1:length(cl.memb)) {
-    hc[which( all.copy$location.r == as.numeric(names(cl.memb[i])) )] <- cl.memb[i]
-}
-all.copy$hc <- hc
-
-
-##------------------------------------------------------------------
 ## Drop backfilled/superfluous columns
 ##------------------------------------------------------------------
-drop.cols   <- c(
-                    ## replaced with numeric values
+drop.cols   <- c(   ## replaced with numeric values
                     "time", "state", "car_value.r",
+
                     ## cleaned
                     "location", "car_value", "risk_factor", "C_previous", "duration_previous",
+
                     ## not needed
                     "custday_key")
 
