@@ -36,10 +36,6 @@ for (n in 0:1) {
     }
 
     ##------------------------------------------------------------------
-    ## Drop columns
-    ##------------------------------------------------------------------
-
-    ##------------------------------------------------------------------
     ## Isolate the number of timesteps and choices
     ##------------------------------------------------------------------
     tvec    <- unique(smp$shopping_pt)  ## timesteps
@@ -66,49 +62,26 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
     for (i in 1:11) {
         cat("Iteration ",i, " ... of 11 \n")
-        for (j in 1:cnum) {
         
+        for (j in 1:cnum) {
+            
             tmp.time    <- tvec[i]  ## the shopping_pt (1, 2, 3, ...)
             tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
         
-            row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )     ## load non-purchase points
+            ## load non-purchase points
+            row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )
         
-            ## add the new cost data
-            tmp.dat     <- smp[row.idx, c(1:(cost.idx-1),  (cost.idx):(cost.idx+i-1), let.idx:(let.idx+((i+1)*7)-1))]    ## load all prior decision info
-        
-            ##------------------------------------------------------------------
-            ## originally I created a separate panel for each of the shopping_pt
-            ## and letter combinations; however, I think I prefer just having a
-            ## panel for each shopping_pt.  So, I moved the panel ID info out of
-            ## the interior loop.  Keeping the prior info so I can return to the
-            ## old form quickly.
-            ##------------------------------------------------------------------
-            ## identify terminal choices to drop from this panel
-            ##drop.let    <- paste(LETTERS[which(!(paste(LETTERS[1:7],"T",sep="") %in% paste(tmp.choice,"T",sep="")))],"T", sep="")
-        
-            ## drop the irrelevant terminal choices
-            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% drop.let) ]
-        
-            ## drop the original "letter" variables b/c they're included elsewhere
-            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% LETTERS[1:7])]
-        
-            ## drop redundant columns
-            ##tmp.dat     <- tmp.dat[, -which(colnames(tmp.dat) %in% c("record_type"))]
+            ## add the new cost data (i.e., all prior decision info)
+            tmp.dat     <- smp[row.idx, c(1:(cost.idx-1),  (cost.idx):(cost.idx+i-1), let.idx:(let.idx+((i+1)*7)-1))]
         }
     
-    ## define the panel ID
-    #panel_id <- paste(tmp.choice, ifelse(tmp.time < 10, paste("0",tmp.time,sep=""), tmp.time), sep="_")
-    panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
-    
-    ## define the panel ID
-    #tmp.term    <- paste(tmp.choice, "T", sep="")
-    #tmp.colidx  <- which( colnames(tmp.dat) %in% c("customer_ID", "shopping_pt", tmp.term) )
-                                
-    ## load the raw data
-    #panel.list[[panel_id]]$term <- tmp.term
-    panel.list[[panel_id]]$sp <- panel_id
-    panel.list[[panel_id]]$data <- tmp.dat
-    panel.list[[panel_id]]$len  <- nrow(tmp.dat)
+        ## define the panel ID
+        panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
+        
+        ## load the raw data
+        panel.list[[panel_id]]$sp   <- panel_id
+        panel.list[[panel_id]]$data <- droplevels(tmp.dat)  ## drop superfluous levels
+        panel.list[[panel_id]]$len  <- nrow(tmp.dat)
  
     }
 

@@ -47,8 +47,18 @@ load("002_allstateRawData.Rdata")
 ## K-means clusters
 ##------------------------------------------------------------------
 
+## isolate purchase points (?)
+tmp.purch   <- subset(all.copy, record_type == 1)
 
+## identify variables to use for cluster definition
+#purch.dist   <- daisy(
+#                    tmp.purch[ , c("cost", "car_age", "age_youngest", "age_oldest")],
+#                    metric="euclidean",
+#                    stand=TRUE
+#                    )
 
+#purch.dist  <- dist(tmp.purch[ , c("cost", "car_age", "age_youngest", "age_oldest")])
+#purch.km5   <- kmeans(purch.dist, centers=5)
 
 ##------------------------------------------------------------------
 ## Attempt to identify location-specific clusters

@@ -20,11 +20,16 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 load("002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
 ##------------------------------------------------------------------
+## Set-up a sink
+##------------------------------------------------------------------
+writeLines(c(""), "004_logfile.txt")
+sink("004_logfile.txt", append=TRUE)
+
+##------------------------------------------------------------------
 ## Load the panel data
 ##------------------------------------------------------------------
-
-for (n in 0:1) {
-##for (n in 1:1) {
+for (n in 0:0) {
+#for (n in 0:1) {
     
     ##------------------------------------------------------------------
     ## Subset the data via id_fl (0 == test, 1 == train)
@@ -81,13 +86,17 @@ for (n in 0:1) {
     num.cust 	<- length(uniq.cust)
     col.letters <- LETTERS[1:7]
     col.numbers <- 1:7
-
+    
     ## track runtime
     #system.time({
     
     ## loop over all the custmomers and populate the choice history
     for (i in 1:num.cust) {
+    ##panel.list <- foreach (i=1:num.cust, .inorder=TRUE) %dopar% {
 
+        ## report progress
+        if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
+        
         ## isolate the rows for each customer
         row.idx <- which(panel[ , c("customer_ID")] == uniq.cust[i])
 	
@@ -120,10 +129,14 @@ for (n in 0:1) {
                 tmp.cost[j, k]                   <- tmp.amt[(j-(k-1)), 3]
             }
         }
+        
+        ## update the matricex
         ch.hist[ row.idx, ] <- tmp.hist
         ch.cost[ row.idx, ] <- tmp.cost
 	
-        if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
+        ## return a list with the updated
+        list(ch.hist=tmp.hist, ch.cost=tmp.cost, idx=row.idx, id=uniq.cust[i])
+    
     }
     #}) ## end of system.time
 
@@ -159,6 +172,8 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test ,file="005_allstateRawData.Rdata")
 
-
-
+##------------------------------------------------------------------
+## Close sink
+##------------------------------------------------------------------
+sink()
 
