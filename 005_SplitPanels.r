@@ -77,8 +77,8 @@ for (n in 0:1) {
     
         ## define the panel ID
         panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
-        
-        ## load the raw data
+                
+        ## load the raw data into a list
         panel.list[[panel_id]]$sp   <- panel_id
         panel.list[[panel_id]]$data <- droplevels(tmp.dat)  ## drop superfluous levels
         panel.list[[panel_id]]$len  <- nrow(tmp.dat)

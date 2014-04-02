@@ -208,24 +208,6 @@ for (i in 1:(sh_pt.num)) {
     
 }
 
-####################################################################
-
-##------------------------------------------------------------------
-## Determine if there are any forbidden transitions
-##------------------------------------------------------------------
-
-choice.grid     <- expand.grid(A=c(0,1,2), B=c(0,1), C=c(1,2,3,4), D=c(1,2,3), E=c(0,1), F=c(0,1,2,3), G=c(1,2,3,4))
-choice.vec      <- apply(choice.grid, 1, function(x){paste(x,collapse="")})
-purchase.vec    <- apply(tmp.train[(tmp.train$record_type == 1), LETTERS[1:7]], 1, function(x){paste(x,collapse="")})
-
-purchase.tbl        <- table(purchase.vec)
-choice.tbl          <- 0*vector(,length=length(choice.vec))
-names(choice.tbl)   <- choice.vec
-
-choice.tbl[ which(choice.vec %in% names(purchase.tbl)) ] <- purchase.tbl
-choice.tbl  <- choice.tbl / sum(choice.tbl)
-
-
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------

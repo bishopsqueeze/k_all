@@ -141,18 +141,42 @@ all.copy$car_value.num  <- num.car_value
 all.copy$car_age.bin    <- car_age.decile
 all.copy$state.num      <- num.state
 all.copy$time.num       <- num.min
-all.copy$dayfrac.nrm    <- num.min / (24*60)
-all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
 
 ##------------------------------------------------------------------
 ## Create additional variables
 ##------------------------------------------------------------------
+
+## create a last-observation flag for each customer
+num.cust                     <- length(all.copy$customer_ID)
+last.idx                     <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
+all.copy$last_fl             <- as.integer(0)
+all.copy$last_fl[last.idx]   <- 1
+
+## create day-fractions [subset(all.copy, customer_ID %in% c(10149906,10151837))]
+all.copy$dayfrac.nrm         <- num.min / (24*60)
+
+## create a key
+all.copy$custday_key         <- paste(all.copy$customer_ID, all.copy$day, sep="_")
+
+## compute an estiamted cumulative time spent shopping for plans
+##  - compute a period-over-period elapsed time, but ...
+##  - ... correct the elapsed time s/t the first observation is 0 and any
+##    negative values are set to zero (we might observe a negative elapsed
+##    time b/c a late shopping point occured on the say "day of the week"
+##    but at an earlier time-of-day
+all.copy$dayfrac.diff   <- c(0, diff(all.copy$dayfrac.nrm))
+all.copy$dayfrac.diff[ which(all.copy$shopping_pt == 1) ] <- 0
+all.copy$dayfrac.diff[ (all.copy$dayfrac.diff < 0) ] <- 0
+all.copy$dayfrac.cum    <- as.vector(unlist(tapply(all.copy$dayfrac.diff, all.copy$customer_ID, function(x){cumsum(x)})))
 
 ## period-over-period cost differences (by customer_ID)
 all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, calcDiff)))
 
 ## cumulative cost differences (by customer_ID)
 all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
+
+## ratio of current cost to minimum quoted cost (by customer_ID)
+all.copy$rmin   <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, function(x){x/min(x,na.rm=TRUE)})))
 
 ## [parallel] period-over-period change in each of the selection options
 tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
@@ -166,38 +190,41 @@ tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
 }
 all.copy[, paste("n",LETTERS[1:7],sep="")] <- tmp.res
 
-## clean the day fraction difference
-all.copy$custday_key    <- paste(all.copy$customer_ID, all.copy$day, sep="_")
-all.copy$dayfrac.diff[ !duplicated(all.copy$custday_key) ] <- 0
 
-## create a cumulative dayfrac variable
-all.copy$dayfrac.cum    <- as.vector(unlist(tapply(all.copy$dayfrac.diff, all.copy$customer_ID, function(x){cumsum(x)})))
-
-## create a last-observation flag for each customer
-num.cust                    <- length(all.copy$customer_ID)
-last.idx                    <- unlist( lapply(split(1:num.cust, all.copy$customer_ID), tail, 1) )
-all.copy$last_fl            <- 0
-all.copy$last_fl[last.idx]  <- 1
-
-## identify the number of changes (per customer) in a "static" form entry
-all.copy$day.u              <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
-all.copy$group_size.u       <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
-all.copy$homeowner.u        <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
-all.copy$car_age.u          <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
-all.copy$age_oldest.u       <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
-all.copy$age_youngest.u     <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
-all.copy$married_couple.u   <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
-all.copy$car_value.u        <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
-all.copy$location.u         <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
-all.copy$C_previous.u       <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
-all.copy$duration_previous.u  <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique)))
-all.copy$risk_factor.u      <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, numUnique)))
+## identify the number of "updates"/"changes" (per customer) in a "static" form entry
+all.copy$day.u               <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
+all.copy$group_size.u        <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
+all.copy$homeowner.u         <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
+all.copy$car_age.u           <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
+all.copy$age_oldest.u        <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
+all.copy$age_youngest.u      <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
+all.copy$married_couple.u    <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
+all.copy$car_value.u         <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
+all.copy$location.u          <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
+all.copy$C_previous.u        <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
+all.copy$duration_previous.u <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique)))
+all.copy$risk_factor.u       <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, numUnique)))
 
 ##------------------------------------------------------------------
 ## Re-code variables with missings
 ##------------------------------------------------------------------
 all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]   <- 5
 all.copy$location.r[ which(all.copy$location.r == -9) ]         <- 99999
+
+##------------------------------------------------------------------
+## Normalize variables
+##------------------------------------------------------------------
+all.copy$car_age.s           <- scale(all.copy$car_age)
+all.copy$age_oldest.s        <- scale(all.copy$age_oldest)
+all.copy$age_youngest.s      <- scale(all.copy$age_youngest)
+all.copy$duration_previous.s <- scale(all.copy$duration_previous.r)
+all.copy$dayfrac.cum.s       <- scale(all.copy$dayfrac.cum)
+all.copy$dayfrac.nrm.s       <- scale(all.copy$dayfrac.nrm)
+
+all.copy$cost.s     <- scale(all.copy$cost)     ## scaled cost
+all.copy$dcost.s    <- scale(all.copy$dcost)    ## scaled change in cost from prior choice
+all.copy$ccost.s    <- scale(all.copy$ccost)    ## scaled cumulative change in cost from first choice
+all.copy$rmin.s     <- scale(all.copy$rmin)     ## scaled ratio of cost / min(cost)
 
 
 ##------------------------------------------------------------------
@@ -214,14 +241,11 @@ all.copy  <- convert.magic(all.copy, factor.list, rep("factor", length(factor.li
 ##------------------------------------------------------------------
 ## Drop backfilled/superfluous columns
 ##------------------------------------------------------------------
-drop.cols   <- c(   ## replaced with numeric values
-                    "time", "state", "car_value.r",
-
-                    ## cleaned
-                    "location", "car_value", "risk_factor", "C_previous", "duration_previous",
-
-                    ## not needed
-                    "custday_key")
+drop.cols   <- c(   "time", "state", "location", "car_age", "car_value", "risk_factor",
+                    "age_oldest", "age_youngest", "C_previous", "duration_previous",
+                    "cost", "car_value.r", "duration_previous.r",
+                    "time.num", "custday_key", "dayfrac.diff", "dayfrac.nrm",
+                    "dayfrac.cum", "dcost", "ccost", "rmin")
 
 ## make a copy and then drop columns
 all.copy.orig   <- all.copy

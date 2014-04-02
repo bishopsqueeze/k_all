@@ -40,13 +40,13 @@ panel.num       <- length(panel.files)
 ## Set-up
 ##------------------------------------------------------------------
 set.seed(123)
-cv.k        <- 5        ## cross-validation iterations
 fit.list    <- list()   ## list for output
 
 ##------------------------------------------------------------------
 ## Loop over each panel and use multinom to fit
 ##------------------------------------------------------------------
-for (i in 1:11) {
+for (i in 2:2) {
+    #for (i in 1:11) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -61,25 +61,47 @@ for (i in 1:11) {
     tmp.data    <- tmp.object$data
     tmp.len     <- tmp.object$len
     
+    ## define the cross validation
+    cv.k        <- 4
+
     ## loop over each LETTER (A, B, ... , G)
-    for (j in 1:7) {
+    for (j in 7:7) {
     
         ## report the loaded panel
         cat("Dependent Variable ... ", LETTERS[j], "\n")        ## clear some variables
         
+        ## clear data
         fit.raw     <- NULL
         fit.step    <- NULL
 
-        ## define the dataframe
-        tmp.reg   <- tmp.data[ , c( grep(paste(LETTERS[j],"T",sep=""), names(tmp.data)),
-                                grep( paste(LETTERS[j],"[0-9]",sep=""), names(tmp.data)))]
-    
-        ## convert all variables to factors
-        tmp.reg   <- convert.magic(tmp.reg, colnames(tmp.reg), rep("factor",length(tmp.reg)))
-    
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(LETTERS[j],"T",sep="")
-        tmp.lq     <- paste(LETTERS[j],"0",sep="")
+        tmp.lq     <- paste(LETTERS[j],"0",sep="")  ## last-qutoed
+        
+        
+        ## define columns to drop
+        drop.cols   <- c(
+                            c("customer_ID", "shopping_pt", "record_type", "cost", "id_fl", "last_fl", "time.nrm", "time.num"),
+                            c("car_age", "age_oldest", "age_youngest", "duration_previous.r", "dcost", "ccost", "dayfrac.diff"),
+## drop temporarily
+c("location.r"),
+                            LETTERS[1:7],
+                            paste(LETTERS[1:7],"T",sep=""),
+                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+                            colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))]
+                        )
+        
+        ## for SP_01 drop "n*" and "d*" variables b/c no accumulated history
+        if (i == 1) {
+            drop.cols <- c(drop.cols, paste("n",LETTERS[1:7],sep=""), paste("d",LETTERS[1:7],sep=""))
+        }
+                    
+        ## don't drop the reponse variable
+        drop.cols   <- drop.cols[ -which(drop.cols %in% tmp.y) ]
+                        
+
+        ## define the regression dataframe
+        tmp.reg   <- tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ]
         
         ##------------------------------------------------------------------
         ## set-up manual cross validation
@@ -100,15 +122,15 @@ for (i in 1:11) {
             tmp.frm     <- as.formula(paste(eval(tmp.y), "~ .",sep=""))
 
             ## compute the initial fit
-            tmp.fit     <- multinom(tmp.frm, data = dev, maxit = 1000)
+            tmp.fit.2     <- multinom(tmp.frm, data = dev, maxit = 1000, trace=TRUE)
     
             ### perform a stepwise search
-            tmp.fit.2   <- stepAIC(tmp.fit, trace=2)
+            #tmp.fit.2   <- stepAIC(tmp.fit, trace=2)
     
             ## compute some fit statistics
-            tmp.sum     <- summary(tmp.fit.2)
-            tmp.z       <- tmp.sum$coefficients/tmp.sum$standard.errors
-            tmp.p       <- (1 - pnorm(abs(tmp.z), 0, 1))*2
+            #tmp.sum     <- summary(tmp.fit.2)
+            #tmp.z       <- tmp.sum$coefficients/tmp.sum$standard.errors
+            #tmp.p       <- (1 - pnorm(abs(tmp.z), 0, 1))*2
     
             ## in-sample fit
             fitted.ins  <- predict(tmp.fit.2, newdata=dev, type="probs")
@@ -139,4 +161,4 @@ for (i in 1:11) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(fit.list, file="010_SingleChoiceMultinomFit.Rdata")
+##save(fit.list, file="010_SingleChoiceMultinomFit.Rdata")

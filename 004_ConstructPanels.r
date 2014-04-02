@@ -17,7 +17,7 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 ##------------------------------------------------------------------
 ## Load data
 ##------------------------------------------------------------------
-load("002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
+load("002_allstateRawData.Rdata"); rm("all.bl", "all.na")
 
 ##------------------------------------------------------------------
 ## Set-up a sink
@@ -28,8 +28,7 @@ sink("004_logfile.txt", append=TRUE)
 ##------------------------------------------------------------------
 ## Load the panel data
 ##------------------------------------------------------------------
-for (n in 0:0) {
-#for (n in 0:1) {
+for (n in 0:1) {
     
     ##------------------------------------------------------------------
     ## Subset the data via id_fl (0 == test, 1 == train)
@@ -40,7 +39,7 @@ for (n in 0:0) {
     ## Make a copy of a slim version of the data (panel)
     ##------------------------------------------------------------------
     panel <- as.matrix(smp[ , c(c("customer_ID", "record_type"), LETTERS[1:7])])
-    cost  <- as.matrix(smp[ ,   c("customer_ID", "record_type", "cost")])
+    cost  <- as.matrix(smp[ ,   c("customer_ID", "record_type", "cost.s")])     ## propagate the scaled cost
 
     ##------------------------------------------------------------------
     ## get the maximum number of touches in the file
@@ -65,7 +64,7 @@ for (n in 0:0) {
     ##------------------------------------------------------------------
     ## Create a matrix to hold the terminal and all prior costs (ch.cost)
     ##------------------------------------------------------------------
-    col.headers	<- paste("cost",seq(0,(max.touch-1),1),sep="")
+    col.headers	<- paste("cost.s",seq(0,(max.touch-1),1),sep="")
     ch.cost     <- matrix(0, nrow=nrow(panel), ncol=length(col.headers))
     colnames(ch.cost) <- col.headers
     rownames(ch.cost) <- panel[ , c("customer_ID")]
@@ -91,8 +90,9 @@ for (n in 0:0) {
     #system.time({
     
     ## loop over all the custmomers and populate the choice history
+    #tmp.list <- list()
     for (i in 1:num.cust) {
-    ##panel.list <- foreach (i=1:num.cust, .inorder=TRUE) %dopar% {
+    ##tmp.list <- foreach (i=1:num.cust, .inorder=TRUE) %dopar% {
 
         ## report progress
         if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
@@ -135,7 +135,7 @@ for (n in 0:0) {
         ch.cost[ row.idx, ] <- tmp.cost
 	
         ## return a list with the updated
-        list(ch.hist=tmp.hist, ch.cost=tmp.cost, idx=row.idx, id=uniq.cust[i])
+        #tmp.list <- list(ch.hist=tmp.hist, ch.cost=tmp.cost, idx=row.idx, id=uniq.cust[i])
     
     }
     #}) ## end of system.time
@@ -170,7 +170,7 @@ for (n in 0:0) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test ,file="005_allstateRawData.Rdata")
+##save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test ,file="005_allstateRawData.Rdata")
 
 ##------------------------------------------------------------------
 ## Close sink

@@ -153,23 +153,6 @@ for (i in 1:1) {
 }
 
 
-##------------------------------------------------------------------
-## Compute the gkTau relationship amongst each pair of final choices
-##------------------------------------------------------------------
-
-fin.ch  <- subset(all.copy, record_type == 1)
-tau.mat <- matrix(,nrow=7,ncol=7)
-rownames(tau.mat)   <- LETTERS[1:7]
-colnames(tau.mat)   <- LETTERS[1:7]
-
-for (i in 1:7) {
-    tmp.x   <- as.vector(fin.ch[, LETTERS[i]])
-    for (j in 1:7) {
-        tmp.y           <- as.vector(fin.ch[, LETTERS[j]])
-        tau.mat[i,j]    <- gkTau(tmp.x, tmp.y)
-    }
-}
-
 ##******************************************************************
 ## Compute other correlation measures using the train panel
 ##******************************************************************
@@ -201,25 +184,6 @@ load("005_allstateRawData_Train.Rdata")
 fin.ch  <- subset(all.train, record_type == 1)
 fin.ch$u01  <- runif(nrow(fin.ch))
 fin.ch$n01  <- rnorm(nrow(fin.ch))
-
-##------------------------------------------------------------------
-## define a correlation matrices for all choices
-##------------------------------------------------------------------
-tau.mat.xy <- matrix(,nrow=7,ncol=7)
-tau.mat.yx <- matrix(,nrow=7,ncol=7)
-
-rownames(tau.mat.xy)   <- paste(LETTERS[1:7], "T", sep="")
-colnames(tau.mat.xy)   <- paste(LETTERS[1:7], "T", sep="")
-rownames(tau.mat.yx)   <- paste(LETTERS[1:7], "T", sep="")
-colnames(tau.mat.yx)   <- paste(LETTERS[1:7], "T", sep="")
-for (i in 1:7) {
-    tmp.x   <- as.factor(fin.ch[, paste(LETTERS[i],"T",sep="")])
-    for (j in 1:7) {
-        tmp.y           <- as.factor(fin.ch[, paste(LETTERS[j],"T",sep="")])
-        tau.mat.xy[i,j]    <- 100*gkTau(tmp.x, tmp.y)
-        tau.mat.yx[i,j]    <- 100*gkTau(tmp.y, tmp.x)
-    }
-}
 
 ##------------------------------------------------------------------
 ## define a correlation matrices for choice v. categorical variables
