@@ -16,13 +16,11 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/raw")
 
 ##------------------------------------------------------------------
 ## Read in the various files
 ##------------------------------------------------------------------
-#train.raw	<- as.data.table(read.csv("train.csv", header=TRUE))
-#test.raw	<- as.data.table(read.csv("test_v2.csv", header=TRUE))
 train.raw	<- read.csv("train.csv", header=TRUE)
 test.raw	<- read.csv("test_v2.csv", header=TRUE)
 
