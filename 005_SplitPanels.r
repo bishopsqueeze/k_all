@@ -54,7 +54,7 @@ for (n in 0:1) {
     ## that all of prior choice variables lie to the right of this column
     ##------------------------------------------------------------------
     let.idx     <- which(colnames(smp) == "AT")
-    cost.idx    <- which(colnames(smp) == "cost0")
+    cost.idx    <- which(colnames(smp) == "cost.s0")
 
     ##------------------------------------------------------------------
     ## Loop over the time/choice combinations and load a separate panel

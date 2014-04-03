@@ -78,18 +78,14 @@ for (i in 2:2) {
         tmp.y      <- paste(LETTERS[j],"T",sep="")
         tmp.lq     <- paste(LETTERS[j],"0",sep="")  ## last-qutoed
         
-        
         ## define columns to drop
-        drop.cols   <- c(
-                            c("customer_ID", "shopping_pt", "record_type", "cost", "id_fl", "last_fl", "time.nrm", "time.num"),
+        drop.cols   <- c(   c("customer_ID", "shopping_pt", "record_type", "cost", "id_fl", "last_fl", "time.nrm", "time.num"),
                             c("car_age", "age_oldest", "age_youngest", "duration_previous.r", "dcost", "ccost", "dayfrac.diff"),
-## drop temporarily
-c("location.r"),
+                            c("location.r"),
                             LETTERS[1:7],
                             paste(LETTERS[1:7],"T",sep=""),
                             colnames(tmp.data)[grep("u$",colnames(tmp.data))],
-                            colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))]
-                        )
+                            colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))])
         
         ## for SP_01 drop "n*" and "d*" variables b/c no accumulated history
         if (i == 1) {
