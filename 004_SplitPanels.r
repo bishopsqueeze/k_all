@@ -22,16 +22,16 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 ##------------------------------------------------------------------
 ## One loop for test data (0) and one loop for training data (1)
 ##------------------------------------------------------------------
-for (n in 0:1) {
+for (n in 1:1) {
     
     ##------------------------------------------------------------------
     ## Load data
     ##------------------------------------------------------------------
     if (n == 0) {
-        load("005_allstateRawData_Test.Rdata")
+        load("003_allstateRawData_Test.Rdata")
         smp <- all.test; rm(all.test, all.copy, cost.test, hist.test)
     } else {
-        load("005_allstateRawData_Train.Rdata")
+        load("003_allstateRawData_Train.Rdata")
         smp <- all.train; rm(all.train, all.copy, cost.train, hist.train)
     }
 
@@ -41,8 +41,8 @@ for (n in 0:1) {
     tvec    <- unique(smp$shopping_pt)  ## timesteps
     tnum    <- length(tvec)
 
-    cvec    <- LETTERS[1:7]             ## choices
-    cnum    <- length(cvec)
+#    cvec    <- LETTERS[1:7]             ## choices
+#    cnum    <- length(cvec)
 
     ##------------------------------------------------------------------
     ## Create a placeholder list
@@ -55,7 +55,8 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
 
 ## need to change this to "ABCDEFG.T"
-let.idx     <- which(colnames(smp) == "AT")
+#let.idx     <- which(colnames(smp) == "AT")
+choice.idx     <- which(colnames(smp) == "ABCDEFG.T")
     cost.idx    <- which(colnames(smp) == "cost.s0")
 
     ##------------------------------------------------------------------
@@ -65,17 +66,18 @@ let.idx     <- which(colnames(smp) == "AT")
     for (i in 1:11) {
         cat("Iteration ",i, " ... of 11 \n")
         
-        for (j in 1:cnum) {
+    #for (j in 1:cnum) {
             
             tmp.time    <- tvec[i]  ## the shopping_pt (1, 2, 3, ...)
-            tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
+            #tmp.choice  <- cvec[j]  ## the option (A, B, C, ...)
         
             ## load non-purchase points
             row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )
         
             ## add the new cost data (i.e., all prior decision info)
-            tmp.dat     <- smp[row.idx, c(1:(cost.idx-1),  (cost.idx):(cost.idx+i-1), let.idx:(let.idx+((i+1)*7)-1))]
-        }
+            #tmp.dat     <- smp[row.idx, c( 1:(cost.idx-1), (cost.idx):(cost.idx+i-1), choice.idx:(choice.idx+((i+1)*7)-1))]
+            tmp.dat     <- smp[row.idx, c( 1:(cost.idx-1), (cost.idx):(cost.idx+i-1), (choice.idx):(choice.idx+i) )]
+    #}
     
         ## define the panel ID
         panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
@@ -88,67 +90,91 @@ let.idx     <- which(colnames(smp) == "AT")
     }
 
 
-## gonna need to rework this since we're dealing with concatenated results now
+    ## gonna need to rework this since we're dealing with concatenated results now
 
-##------------------------------------------------------------------
-## Create the {"AF","BE","CD","G"} group
-##------------------------------------------------------------------
-## Locations:   ABCDEFG
-##              1234567
-##------------------------------------------------------------------
-panel.names <- names(panel.list)
-group.names <- c("AF","BE","CD","G")
-for (i in 1:length(panel.names)) {
+    ##------------------------------------------------------------------
+    ## Create the {"AF","BE","CD","G"} group
+    ##------------------------------------------------------------------
+    ## Locations:   ABCDEFG
+    ##              1234567
+    ##------------------------------------------------------------------
+    panel.names <- names(panel.list)
+    group.names <- c("AF","BE","CD","G")
+
+    for (i in 1:length(panel.names)) {
     
     tmp.sp  <- as.integer(substr(panel.list[[panel_id]]$sp,4,5))
     tmp.dat <- panel.list[[panel_id]]$data
     
-    ## concatenate shopping results for both datasets
-    for (j in 1:length(group.names)) {
+        ## concatenate shopping results for both datasets
+        for (j in 1:length(group.names)) {
         
             tmp.gp  <- group.names[j]
             
-            ## concatenate non-terminal results
+            ## concatenate non-terminal results (redundant ????)
             if (tmp.gp == "AF") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$A,tmp.dat$F))
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$A,tmp.dat$F,sep="")))
             } else if (tmp.gp == "BE") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$B,tmp.dat$E))
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$B,tmp.dat$E,sep="")))
             } else if (tmp.gp == "CD") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$C,tmp.dat$D))
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$C,tmp.dat$D,sep="")))
+            } else if (tmp.gp == "G") {
+                #tmp.dat[ , tmp.gp] <- as.factor(tmp.dat$G)
             }
             
             ## concatenate terminal results for training data only
             if (n == 1) {
                 if (tmp.gp == "AF") {
-                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$AT,tmp.dat$FT))
+                    tmp.AT                              <- substr(tmp.dat$ABCDEFG.T,1,1)
+                    tmp.FT                              <- substr(tmp.dat$ABCDEFG.T,6,6)
+                    tmp.dat[, paste(tmp.gp,"T",sep="")] <- as.factor(cbind(paste(tmp.AT,tmp.FT,sep="")))
                 } else if (tmp.gp == "BE") {
-                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$BT,tmp.dat$ET))
+                    tmp.BT                              <- substr(tmp.dat$ABCDEFG.T,2,2)
+                    tmp.ET                              <- substr(tmp.dat$ABCDEFG.T,5,5)
+                    tmp.dat[, paste(tmp.gp,"T",sep="")] <- as.factor(cbind(paste(tmp.BT,tmp.ET,sep="")))
                 } else if (tmp.gp == "CD") {
-                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$CT,tmp.dat$DT))
-                }
+                    tmp.CT                              <- substr(tmp.dat$ABCDEFG.T,3,3)
+                    tmp.DT                              <- substr(tmp.dat$ABCDEFG.T,4,4)
+                    tmp.dat[, paste(tmp.gp,"T",sep="")] <- as.factor(cbind(paste(tmp.CT,tmp.DT,sep="")))
+                } else if (tmp.gp == "G") {
+                    tmp.G                               <- substr(tmp.dat$ABCDEFG.T,7,7)
+                    tmp.dat[, paste(tmp.gp,"T",sep="")] <- as.factor(tmp.F)
+               }
             }
-            
+
             ## for each of the prior, concatenate non-terminal results
             for (k in 1:(tmp.sp)) {
-                if (tmp.gp == "AF") {
-                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("A",k-1,sep="")],tmp.dat[, paste("F",k-1,sep="")]))
-                } else if (tmp.gp == "BE") {
-                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("B",k-1,sep="")],tmp.dat[, paste("E",k-1,sep="")]))
-                } else if (tmp.gp == "CD") {
-                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("C",k-1,sep="")],tmp.dat[, paste("D",k-1,sep="")]))
-                }
-            }
+               if (tmp.gp == "AF") {
+                   tmp.AN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],1,1)
+                   tmp.FN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],6,6)
+                   tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(paste(tmp.AN,tmp.FN,sep="")))
+               } else if (tmp.gp == "BE") {
+                   tmp.BN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],2,2)
+                   tmp.EN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],5,5)
+                   tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(paste(tmp.BN,tmp.EN,sep="")))
+               } else if (tmp.gp == "CD") {
+                  tmp.CN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],3,3)
+                  tmp.DN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],4,4)
+                  tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(paste(tmp.CN,tmp.DN,sep="")))
+                } else if (tmp.gp == "G") {
+                   tmp.GN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],7,7)
+                   tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.GN))
+               }
+           }
+           
+        }
+    
+    ## update panel with augmented data
+    panel.list[[panel_id]]$data <- tmp.dat
     }
-    ## update results (should be an add only)
-}
 
     ##------------------------------------------------------------------
     ## Write the full panel to an .Rdata file
     ##------------------------------------------------------------------
     if (n == 0) {
-        save(panel.list, file="006_allstatePanelData_Test.Rdata")
+        save(panel.list, file="004_allstatePanelData_Test.Rdata")
     } else {
-        save(panel.list, file="006_allstatePanelData_Train.Rdata")
+        save(panel.list, file="004_allstatePanelData_Train.Rdata")
     }
 
     ##------------------------------------------------------------------
@@ -159,9 +185,9 @@ for (i in 1:length(panel.names)) {
     for (i in 1:length(panel.names)) {
         tmp.panel       <- panel.names[i]
         if (n == 0) {
-            tmp.filename    <- paste("./panels/006_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
+            tmp.filename    <- paste("./panels/004_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
         } else {
-            tmp.filename    <- paste("./panels/006_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
+            tmp.filename    <- paste("./panels/004_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
         }
         tmp.object      <- panel.list[[tmp.panel]]
         save(tmp.object, file=tmp.filename)
