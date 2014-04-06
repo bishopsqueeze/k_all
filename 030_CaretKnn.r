@@ -9,6 +9,9 @@
 library(nnet)
 library(MASS)
 library(caret)
+library(glmnet)
+library(caret)
+
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -38,6 +41,9 @@ set.seed(123)
 fit.list    <- list()   ## list for output
 
 
+##------------------------------------------------------------------
+## Loop over each shopping_pt relevant to the test {1 ... 11}
+##------------------------------------------------------------------
 for (i in 5:5) {
 
     ## get panel filenames
@@ -53,20 +59,25 @@ for (i in 5:5) {
     tmp.data    <- tmp.object$data
     tmp.len     <- tmp.object$len
 
-
+    ##------------------------------------------------------------------
+    ## Loop over each independent grouping
+    ##------------------------------------------------------------------
     ## loop over each LETTER (A, B, ... , G)
+    
+    
+    
+    
+    
+    groups <- LETTERS[1:7]
     for (j in 7:7) {
+    ##for (j in 1:length(groups)) {
     
-        ## report the loaded panel
-        cat("Dependent Variable ... ", LETTERS[j], "\n")        ## clear some variables
-    
-        ## clear data
-        fit.raw     <- NULL
-        fit.step    <- NULL
+        ## report the variable
+        cat("Response Variable ... ", groups[j], "\n")
     
         ## define the dependent variable and the last-quoted benchmark
-        tmp.y      <- paste(LETTERS[j],"T",sep="")
-        tmp.lq     <- paste(LETTERS[j],"0",sep="")  ## last-qutoed
+        tmp.y      <- paste(groups[j],"T",sep="")
+        tmp.lq     <- paste(groups[j],"0",sep="")  ## last-qutoed
 
         ## define columns to drop
         drop.cols   <- c(   c("customer_ID", "shopping_pt", "record_type"),
@@ -88,9 +99,40 @@ for (i in 5:5) {
         drop.cols   <- drop.cols[ -which(drop.cols %in% tmp.y) ]
 
 
-## define the regression dataframe
-tmp.reg   <- tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ]
+        ## define the regression dataframe
+        tmp.reg   <- tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ]
 
+
+
+        set.seed(123)
+        seeds <- vector(mode = "list", length = 51)
+        for(i in 1:50) seeds[[i]] <- sample.int(1000, 22)
+
+        ## For the last model:
+        seeds[[51]] <- sample.int(1000, 1)
+
+        ctrl <- trainControl(   method = "repeatedcv",
+                                number = 10,    # k-fold
+                                repeats = 5,
+                                savePredictions = FALSE,
+                                classProbs = FALSE,
+                                seeds = seeds,
+                                allowParallel = TRUE)
+
+        set.seed(1)
+
+        knnFit <- train(Species ~ ., data = iris,
+                        method = "knn",
+                        tuneLength = 12,
+                        preProcess = c("center", "scale")
+                        trControl = ctrl)
+
+        knnPred <- predict(knnFit, type="raw")
+        
+        
+        extractPrediction(bothModels, testX = iris[1:10, -5])
+        
+        confusionMatrix(data, reference, dnn = c("Prediction", "Reference"))
 
 
 
@@ -108,5 +150,27 @@ tmp.reg   <- tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ]
 
 
 }
+
+
+
+createDataPartition(y,
+times = 1,
+p = 0.5,
+list = TRUE,
+groups = min(5, length(y)))
+
+
+
+data(iris)
+model <- train(Species~., iris,
+                    method='glmnet',
+                    tuneGrid=expand.grid(
+                    .alpha=0:1,
+                    .lambda=0:30/10))
+
+plot(model)
+coef(model$finalModel, s=model$bestTune$.lambda)
+ This code will fit both a lasso model (alpha=1) and a ridge regression model (alpha=0). You can also pick an alpha somewhere between the 2 for a mix of lasso and ridge regression. This is called the elastic net.
+
 
 

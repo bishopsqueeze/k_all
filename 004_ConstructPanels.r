@@ -5,9 +5,80 @@
 ##------------------------------------------------------------------
 
 ##------------------------------------------------------------------
+## Load libraries
+##------------------------------------------------------------------
+library(Hmisc)
+library(foreach)
+library(doMC)
+
+##------------------------------------------------------------------
+## register cores
+##------------------------------------------------------------------
+registerDoMC(4)
+
+##------------------------------------------------------------------
 ## Clear the workspace
 ##------------------------------------------------------------------
 rm(list=ls())
+
+##------------------------------------------------------------------
+## <function> :: varLag
+##------------------------------------------------------------------
+varLag <- function(myPanel, myCost, myPurch, myHistSkel, myCostSkel, myType=NULL, myClass=NULL) {
+    
+    ## identify unique customers
+    uniq.cust 	<- unique(myPanel[ ,c("customer_ID")])
+    num.cust 	<- length(uniq.cust)
+    all.letters <- paste(LETTERS[1:7],sep="",collapse="")
+    
+    ## loop over all the custmomers and populate a matrix with prior choices
+    tmp.list <- foreach (i=1:num.cust, .inorder=FALSE) %dopar% {
+        
+        ## report progress
+        if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
+        
+        ## isolate the rows for each customer
+        row.idx <- which(myPanel[, c("customer_ID")] == uniq.cust[i])
+        num.idx <- length(row.idx)
+        
+        ## isolate the terminal data for each customer
+        if (myType == 1) {
+            tmp.purch <- myPurch[ (myPurch[ , c("customer_ID")] == uniq.cust[i]) , ]
+        }
+        
+        ## isolate the relevant slice of data
+        if (myClass == "cost") {
+            tmp.smp     <- myCost[ row.idx, ]
+            tmp.skel    <- myCostSkel[ row.idx, ]
+        } else if (myClass == "choice") {
+            tmp.smp     <- myPanel[ row.idx, ]
+            tmp.skel    <- myHistSkel[ row.idx, ]
+        }
+        
+        ## loop over each historical row and populate a wide matrix
+        for (j in 1:num.idx) {
+            
+            ## populate the terminal data (for train data only)
+            if ( (myType == 1) & (myClass == "choice") & (j == 1)) {
+                tmp.skel[, paste(all.letters,".T",sep="")] <- tmp.purch$choice
+            }
+            
+            ## create the lagged histories
+            if ( (myClass == "choice") ) {
+                tmp.skel[, paste(all.letters,".",j-1,sep="")] <- Lag(tmp.smp$choice, shift=j-1)
+            } else {
+                tmp.skel[, paste("cost.s",j-1,sep="")]        <- Lag(tmp.smp$cost.s, shift=j-1)
+            }
+            
+        }
+        rownames(tmp.skel) <- paste(rownames(tmp.skel),1:nrow(tmp.skel),sep="_")
+        
+        ## return a the populated skeleton to the %dopar% routine
+        tmp.skel
+    }
+    
+    return(tmp.list)
+}
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -17,30 +88,42 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 ##------------------------------------------------------------------
 ## Load data
 ##------------------------------------------------------------------
-load("002_allstateRawData.Rdata"); rm("all.bl", "all.na")
+load("002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
 ##------------------------------------------------------------------
 ## Set-up a sink
 ##------------------------------------------------------------------
-writeLines(c(""), "004_logfile.txt")
-sink("004_logfile.txt", append=TRUE)
+writeLines(c(""), "construct_panel_logfile.txt")
+sink("construct_panel_logfile.txt", append=TRUE)
 
 ##------------------------------------------------------------------
-## Load the panel data
+## Create "wide" verions of the choice/cost history
+## ... n == 0 --> loads the "test" data (57156 custmers)
+## ... n == 1 --> loads the "training" data (97009 customers)
 ##------------------------------------------------------------------
-for (n in 0:1) {
-    
+for (n in 1:1) {
+#for (n in 0:1) {
+
     ##------------------------------------------------------------------
     ## Subset the data via id_fl (0 == test, 1 == train)
     ##------------------------------------------------------------------
-    smp <- subset(all.copy, id_fl == n)
+    all.copy$key    <- paste(all.copy$customer_ID, all.copy$shopping_pt, sep="_")   ## move this to a data load stage
+    smp             <- subset(all.copy, id_fl == n)
 
     ##------------------------------------------------------------------
-    ## Make a copy of a slim version of the data (panel)
+    ## Make a copy of a slim version of the choices (panel) & costs (cost)
     ##------------------------------------------------------------------
-    panel <- as.matrix(smp[ , c(c("customer_ID", "record_type"), LETTERS[1:7])])
-    cost  <- as.matrix(smp[ ,   c("customer_ID", "record_type", "cost.s")])     ## propagate the scaled cost
+    panel <- smp[ , c(c("customer_ID", "record_type"), LETTERS[1:7])]
+    cost  <- smp[ ,   c("customer_ID", "record_type", "cost.s")]    ## propagate the scaled cost
 
+    ##------------------------------------------------------------------
+    ## Create a single choice column & drop individual letters
+    ##------------------------------------------------------------------
+    panel$choice <- apply(panel[, LETTERS[1:7]], MARGIN=1, paste, sep="", collapse="")
+    for (i in 1:7) {
+        panel[,LETTERS[i]] <- NULL
+    }
+    
     ##------------------------------------------------------------------
     ## get the maximum number of touches in the file
     ##------------------------------------------------------------------
@@ -50,13 +133,11 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
     ## Create a matrix to hold the terminal and all prior choices (ch.hist)
     ##------------------------------------------------------------------
-    col.headers <- paste(LETTERS[1:7],"T",sep="")
-
+    col.headers <- paste( paste(LETTERS[1:7], sep="", collapse="") ,".T",sep="")
     for (i in 0:(max.touch-1)) {
-        tmp.headers	<- paste(LETTERS[1:7],i,sep="")
+        tmp.headers	<- paste( paste(LETTERS[1:7], sep="", collapse="") ,".",i,sep="")
         col.headers	<- c(col.headers, tmp.headers)
     }
-
     ch.hist <- matrix(0, nrow=nrow(panel), ncol=length(col.headers))
     colnames(ch.hist) <- col.headers
     rownames(ch.hist) <- panel[ , c("customer_ID")]
@@ -75,94 +156,36 @@ for (n in 0:1) {
     if (n == 1) {
         purch <- panel[ (panel[ ,c("record_type")] == 1) , ]
     }
+    
+    ##------------------------------------------------------------------
+    ## Load the lagged choice/cost data
+    ##------------------------------------------------------------------
+    hist.list <- varLag(myPanel=panel, myCost=cost, myPurch=purch, myHistSkel=ch.hist, myCostSkel=ch.cost, myType=n, myClass="choice")
+    cost.list <- varLag(myPanel=panel, myCost=cost, myPurch=purch, myHistSkel=ch.hist, myCostSkel=ch.cost, myType=n, myClass="cost")
 
     ##------------------------------------------------------------------
-    ## Load the panels -- Slow even though all matrix manipulations
+    ## Transform into data frames
     ##------------------------------------------------------------------
-
-    ## identify unique customers
-    uniq.cust 	<- unique(panel[ ,c("customer_ID")])
-    num.cust 	<- length(uniq.cust)
-    col.letters <- LETTERS[1:7]
-    col.numbers <- 1:7
+    df.cost     <- as.data.frame(do.call(rbind, cost.list))
+    df.cost$key <- rownames(df.cost)
     
-    ## track runtime
-    #system.time({
-    
-    ## loop over all the custmomers and populate the choice history
-    #tmp.list <- list()
-    for (i in 1:num.cust) {
-    ##tmp.list <- foreach (i=1:num.cust, .inorder=TRUE) %dopar% {
-
-        ## report progress
-        if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
-        
-        ## isolate the rows for each customer
-        row.idx <- which(panel[ , c("customer_ID")] == uniq.cust[i])
-	
-        ## isolate that slice of data
-        tmp.smp	<- panel[ row.idx, ]
-        tmp.amt <- cost[ row.idx, ]
-        num.smp	<- nrow(tmp.smp)
-	
-        ## isolate the terminal data for each customer
-        if (n == 1) {
-            tmp.purch <- purch[ (purch[ , c("customer_ID")] == uniq.cust[i]) , ]
-        }
-    
-        ## grab the choice history matrix
-        tmp.hist  <- ch.hist[ row.idx, ]
-        tmp.cost  <- ch.cost[ row.idx, ]
-    
-        ## loop over each row in the choice history.  for that row,
-        ## load the terminal and all prior choice observations
-        for (j in 1:num.smp) {
-	
-            ## populate the terminal data (for train data only)
-            if (n == 1) {
-                tmp.hist[j, col.numbers] <- tmp.purch[(col.numbers+2)]
-            }
-        
-            ## walk back from current obs. and populate prior observations
-            for (k in 1:j) {
-                tmp.hist[j, (7*k + col.numbers)] <- tmp.smp[(j-(k-1)), (col.numbers+2)]
-                tmp.cost[j, k]                   <- tmp.amt[(j-(k-1)), 3]
-            }
-        }
-        
-        ## update the matricex
-        ch.hist[ row.idx, ] <- tmp.hist
-        ch.cost[ row.idx, ] <- tmp.cost
-	
-        ## return a list with the updated
-        #tmp.list <- list(ch.hist=tmp.hist, ch.cost=tmp.cost, idx=row.idx, id=uniq.cust[i])
-    
-    }
-    #}) ## end of system.time
-
-
-    ##------------------------------------------------------------------
-    ## combine the augmeneted data into a single panel
-    ##------------------------------------------------------------------
-    df.hist             <- as.data.frame(ch.hist)
-    df.cost             <- as.data.frame(ch.cost)
-    rownames(df.hist)   <- NULL
-    rownames(df.cost)   <- NULL
+    df.hist     <- as.data.frame(do.call(rbind, hist.list))
+    df.hist$key <- rownames(df.hist)
     
     ##------------------------------------------------------------------
     ## write separate training and test panels
     ##------------------------------------------------------------------
-    if (n == 1) {
-        all.train   <- cbind(smp, df.cost, df.hist)
-        hist.train  <- ch.hist
-        cost.train  <- ch.cost
-        save(all.copy, all.train, hist.train, cost.train, file="005_allstateRawData_Train.Rdata")
-    } else {
-        all.test    <- cbind(smp, df.cost, df.hist)
-        hist.test     <- ch.hist
-        cost.test     <- ch.cost
-        save(all.copy, all.test, hist.test, cost.test, file="005_allstateRawData_Test.Rdata")
-    }
+    #  if (n == 1) {
+    #    ## join instead all.train   <- cbind(smp, df.cost, df.hist)
+    #    hist.train  <- ch.hist
+    #    cost.train  <- ch.cost
+    #    #save(all.copy, all.train, hist.train, cost.train, file="005_allstateRawData_Train.Rdata")
+    #} else {
+    #    all.test    <- cbind(smp, df.cost, df.hist)
+    #    hist.test     <- ch.hist
+    #    cost.test     <- ch.cost
+    #    #        save(all.copy, all.test, hist.test, cost.test, file="005_allstateRawData_Test.Rdata")
+    #}
 
 } ## end of the main for-loop
 

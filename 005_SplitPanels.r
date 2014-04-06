@@ -85,6 +85,56 @@ for (n in 0:1) {
  
     }
 
+
+##------------------------------------------------------------------
+## Create the {"AF","BE","CD","G"} group
+##------------------------------------------------------------------
+panel.names <- names(panel.list)
+group.names <- c("AF","BE","CD","G")
+for (i in 1:length(panel.names)) {
+    
+    tmp.sp  <- as.integer(substr(panel.list[[panel_id]]$sp,4,5))
+    tmp.dat <- panel.list[[panel_id]]$data
+    
+    ## concatenate shopping results for both datasets
+    for (j in 1:length(group.names)) {
+        
+            tmp.gp  <- group.names[j]
+            
+            ## concatenate non-terminal results
+            if (tmp.gp == "AF") {
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$A,tmp.dat$F))
+            } else if (tmp.gp == "BE") {
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$B,tmp.dat$E))
+            } else if (tmp.gp == "CD") {
+                tmp.dat[ , tmp.gp] <- as.factor(cbind(tmp.dat$C,tmp.dat$D))
+            }
+            
+            ## concatenate terminal results for training data only
+            if (n == 1) {
+                if (tmp.gp == "AF") {
+                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$AT,tmp.dat$FT))
+                } else if (tmp.gp == "BE") {
+                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$BT,tmp.dat$ET))
+                } else if (tmp.gp == "CD") {
+                    tmp.dat[ , paste(tmp.gp,"T",sep="")] <- as.factor(cbind(tmp.dat$CT,tmp.dat$DT))
+                }
+            }
+            
+            ## for each of the prior, concatenate non-terminal results
+            for (k in 1:(tmp.sp)) {
+                if (tmp.gp == "AF") {
+                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("A",k-1,sep="")],tmp.dat[, paste("F",k-1,sep="")]))
+                } else if (tmp.gp == "BE") {
+                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("B",k-1,sep="")],tmp.dat[, paste("E",k-1,sep="")]))
+                } else if (tmp.gp == "CD") {
+                    tmp.dat[ , paste(tmp.gp,k-1,sep="")] <- as.factor(cbind(tmp.dat[, paste("C",k-1,sep="")],tmp.dat[, paste("D",k-1,sep="")]))
+                }
+            }
+    }
+    ## update results (should be an add only)
+}
+
     ##------------------------------------------------------------------
     ## Write the full panel to an .Rdata file
     ##------------------------------------------------------------------
