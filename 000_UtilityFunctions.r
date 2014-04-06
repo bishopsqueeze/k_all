@@ -118,6 +118,68 @@ gkTau    <- function(x, y) {
 }
 
 
+##------------------------------------------------------------------
+## <function> :: varLag
+##------------------------------------------------------------------
+## The purpose of this script is very specific -- to, in effect,
+## transpose a longitudinal choice/cost history into a single row
+## for each customer ... at each step in the shopping_point history.
+##------------------------------------------------------------------
+varLag <- function(myPanel, myCost, myPurch, myHistSkel, myCostSkel, myType=NULL, myClass=NULL) {
+    
+    ## identify unique customers
+    uniq.cust 	<- unique(myPanel[ ,c("customer_ID")])
+    num.cust 	<- length(uniq.cust)
+    all.letters <- paste(LETTERS[1:7],sep="",collapse="")
+    
+    ## loop over all the custmomers and populate a matrix with prior choices
+    tmp.list <- foreach (i=1:num.cust, .inorder=FALSE) %dopar% {
+        
+        ## report progress
+        if ((i %% 1000) == 0) { cat("Iteration = ", i, "\n") }
+        
+        ## isolate the rows for each customer
+        row.idx <- which(myPanel[, c("customer_ID")] == uniq.cust[i])
+        num.idx <- length(row.idx)
+        
+        ## isolate the terminal data for each customer
+        if (myType == 1) {
+            tmp.purch <- myPurch[ (myPurch[ , c("customer_ID")] == uniq.cust[i]) , ]
+        }
+        
+        ## isolate the relevant slice of data
+        if (myClass == "cost") {
+            tmp.smp     <- myCost[ row.idx, ]
+            tmp.skel    <- myCostSkel[ row.idx, ]
+        } else if (myClass == "choice") {
+            tmp.smp     <- myPanel[ row.idx, ]
+            tmp.skel    <- myHistSkel[ row.idx, ]
+        }
+        
+        ## loop over each historical row and populate a wide matrix
+        for (j in 1:num.idx) {
+            
+            ## populate the terminal data (for train data only)
+            if ( (myType == 1) & (myClass == "choice") & (j == 1)) {
+                tmp.skel[, paste(all.letters,".T",sep="")] <- tmp.purch$choice
+            }
+            
+            ## create the lagged histories
+            if ( (myClass == "choice") ) {
+                tmp.skel[, paste(all.letters,".",j-1,sep="")] <- Lag(tmp.smp$choice, shift=j-1)
+            } else {
+                tmp.skel[, paste("cost.s",j-1,sep="")]        <- Lag(tmp.smp$cost.s, shift=j-1)
+            }
+            
+        }
+        rownames(tmp.skel) <- paste(rownames(tmp.skel),1:nrow(tmp.skel),sep="_")
+        
+        ## return a the populated skeleton to the %dopar% routine
+        tmp.skel
+    }
+    
+    return(tmp.list)
+}
 
 
 

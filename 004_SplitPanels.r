@@ -53,7 +53,9 @@ for (n in 0:1) {
     ## Location of the first (of N) choice columns -- this script presumes
     ## that all of prior choice variables lie to the right of this column
     ##------------------------------------------------------------------
-    let.idx     <- which(colnames(smp) == "AT")
+
+## need to change this to "ABCDEFG.T"
+let.idx     <- which(colnames(smp) == "AT")
     cost.idx    <- which(colnames(smp) == "cost.s0")
 
     ##------------------------------------------------------------------
@@ -86,8 +88,13 @@ for (n in 0:1) {
     }
 
 
+## gonna need to rework this since we're dealing with concatenated results now
+
 ##------------------------------------------------------------------
 ## Create the {"AF","BE","CD","G"} group
+##------------------------------------------------------------------
+## Locations:   ABCDEFG
+##              1234567
 ##------------------------------------------------------------------
 panel.names <- names(panel.list)
 group.names <- c("AF","BE","CD","G")

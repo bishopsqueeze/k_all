@@ -16,7 +16,6 @@
 ##------------------------------------------------------------------
 library(foreach)
 library(doMC)
-#library(data.table)
 
 ##------------------------------------------------------------------
 ## register cores
@@ -54,8 +53,9 @@ te$id_fl    <- as.integer(0)
 ##------------------------------------------------------------------
 ## Combine and sort on (customer_ID, shopping_pt)
 ##------------------------------------------------------------------
-all.data    <- rbind(tr, te)
-all.data    <- all.data[ order(all.data$customer_ID, all.data$shopping_pt), ]
+all.data        <- rbind(tr, te)
+all.data        <- all.data[ order(all.data$customer_ID, all.data$shopping_pt), ]
+all.data$key    <- as.factor(paste(all.data$customer_ID, all.data$shopping_pt,sep="_"))
 
 ##------------------------------------------------------------------
 ## Identify instances of blanks/NAs in the data
@@ -155,10 +155,11 @@ all.copy$last_fl[last.idx]   <- 1
 ## create day-fractions [subset(all.copy, customer_ID %in% c(10149906,10151837))]
 all.copy$dayfrac.nrm         <- num.min / (24*60)
 
-## create a key
+## create a key & number of unique days spent shopping per customer
 all.copy$custday_key         <- paste(all.copy$customer_ID, all.copy$day, sep="_")
+all.copy$custday_key.u       <- as.vector(unlist(tapply(all.copy$custday_key, all.copy$customer_ID, numUnique)))
 
-## compute an estiamted cumulative time spent shopping for plans
+## estiamted the cumulative time spent shopping for plans
 ##  - compute a period-over-period elapsed time, but ...
 ##  - ... correct the elapsed time s/t the first observation is 0 and any
 ##    negative values are set to zero (we might observe a negative elapsed
@@ -225,7 +226,6 @@ all.copy$cost.s     <- scale(all.copy$cost)     ## scaled cost
 all.copy$dcost.s    <- scale(all.copy$dcost)    ## scaled change in cost from prior choice
 all.copy$ccost.s    <- scale(all.copy$ccost)    ## scaled cumulative change in cost from first choice
 all.copy$rmin.s     <- scale(all.copy$rmin)     ## scaled ratio of cost / min(cost)
-
 
 ##------------------------------------------------------------------
 ## Perform type conversions for factors
