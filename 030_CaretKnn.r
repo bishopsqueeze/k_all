@@ -6,12 +6,15 @@
 ##------------------------------------------------------------------
 ## Load libraries
 ##------------------------------------------------------------------
-library(nnet)
-library(MASS)
 library(caret)
-library(glmnet)
-library(caret)
+library(class)  ## for gbm()
+library(foreach)
+library(doMC)
 
+##------------------------------------------------------------------
+## register cores
+##------------------------------------------------------------------
+registerDoMC(4)
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -44,7 +47,7 @@ fit.list    <- list()   ## list for output
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 5:5) {
+for (i in 10:10) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -68,8 +71,8 @@ for (i in 5:5) {
     
     
     
-    groups <- LETTERS[1:7]
-    for (j in 7:7) {
+    groups <- c("AF","BE","CD","G")
+    for (j in 4:4) {
     ##for (j in 1:length(groups)) {
     
         ## report the variable
@@ -81,12 +84,15 @@ for (i in 5:5) {
 
         ## define columns to drop
         drop.cols   <- c(   c("customer_ID", "shopping_pt", "record_type"),
-                            c("cost", "id_fl", "last_fl", "time.nrm", "time.num"),
+                            LETTERS[1:7],
+                            c("id_fl", "key", "last_fl", "custday_key.u"),
                             c("car_age", "age_oldest", "age_youngest"),
                             c("duration_previous.r", "dcost", "ccost", "dayfrac.diff"),
                             c("location.r"),
-                            LETTERS[1:7],
-                            paste(LETTERS[1:7],"T",sep=""),
+                            c("cost.s"), ## b/c contained in cost.s0
+                            paste("ABCDEFG.",seq(0,i-1,1),sep=""),
+                            paste("ABCDEFG.","T",sep=""),
+                            paste(groups,"T",sep=""),
                             colnames(tmp.data)[grep("u$",colnames(tmp.data))],
                             colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))])
 
@@ -96,57 +102,45 @@ for (i in 5:5) {
         }
 
         ## don't drop the reponse variable
-        drop.cols   <- drop.cols[ -which(drop.cols %in% tmp.y) ]
-
+        drop.cols   <- drop.cols[ -which(drop.cols %in% eval(tmp.y)) ]
 
         ## define the regression dataframe
-        tmp.reg   <- tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ]
+        tmp.reg   <- droplevels(tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ])
+
+        tmpClass  <- tmp.reg[ , tmp.y]
+        tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
 
 
 
-        set.seed(123)
-        seeds <- vector(mode = "list", length = 51)
-        for(i in 1:50) seeds[[i]] <- sample.int(1000, 22)
+        inTrain   <- sample(seq(along = tmpClass), length(tmpClass)/2)
 
-        ## For the last model:
-        seeds[[51]] <- sample.int(1000, 1)
+        trainDescr <- tmpDescr[ inTrain, ]
+        testDescr  <- tmpDescr[-inTrain, ]
+        trainClass <- tmpClass[ inTrain ]
+        testClass  <- tmpClass[-inTrain ]
 
-        ctrl <- trainControl(   method = "repeatedcv",
-                                number = 10,    # k-fold
-                                repeats = 5,
-                                savePredictions = FALSE,
-                                classProbs = FALSE,
-                                seeds = seeds,
-                                allowParallel = TRUE)
+        ## define a trainControl object
+        fitControl <- trainControl(
+                    method="repeatedcv",
+                    number=10,
+                    repeats=3,
+                    returnResamp="all")
 
-        set.seed(1)
+## fit
+system.time({
+            gbmFit1 <- train(   x=trainDescr,
+                                y=trainClass,
+                                method="gbm",
+                                preProcess=NULL,
+                                trControl=fitControl,
+                                verbose=FALSE)
+})
 
-        knnFit <- train(Species ~ ., data = iris,
-                        method = "knn",
-                        tuneLength = 12,
-                        preProcess = c("center", "scale")
-                        trControl = ctrl)
-
-        knnPred <- predict(knnFit, type="raw")
-        
-        
-        extractPrediction(bothModels, testX = iris[1:10, -5])
-        
-        confusionMatrix(data, reference, dnn = c("Prediction", "Reference"))
 
 
 
 
     }
-
-#    TrainData       <- tmp.data[ , c("GT")]
-#    TrainClasses    <- iris[,5]
-
-#knnFit1 <- train(TrainData, TrainClasses,
-#method = "knn",
-#preProcess = c("center", "scale"),
-#tuneLength = 10,
-#trControl = trainControl(method = "cv"))
 
 
 }

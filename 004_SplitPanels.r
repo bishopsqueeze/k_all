@@ -88,9 +88,12 @@ for (n in 0:1) {
     group.names <- c("AF","BE","CD","G")
 
     for (i in 1:length(panel.names)) {
+        
+        cat("Panel Update Iteration ",i, " ... of 11 \n")
     
-    tmp.sp  <- as.integer(substr(panel.list[[panel_id]]$sp,4,5))
-    tmp.dat <- panel.list[[panel_id]]$data
+        panel_id    <- panel.names[i]
+        tmp.sp      <- as.integer(substr(panel.list[[panel_id]]$sp,4,5))
+        tmp.dat     <- panel.list[[panel_id]]$data
     
         ## concatenate shopping results for both datasets
         for (j in 1:length(group.names)) {
@@ -149,9 +152,9 @@ for (n in 0:1) {
            }
            
         }
-    
-    ## update panel with augmented data
-    panel.list[[panel_id]]$data <- tmp.dat
+        
+        ## update panel with augmented data
+        panel.list[[panel_id]]$data <- tmp.dat
     }
 
     ##------------------------------------------------------------------
