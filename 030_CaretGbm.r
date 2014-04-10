@@ -132,10 +132,9 @@ for (i in 2:2) {
         fitControl <- trainControl(
                     method="repeatedcv",
                     number=10,
-                    repeats=3,
-                    returnResamp="all")
+                    repeats=3)
 
-        ##
+        ## some test configuration parameters
         if (i < 7) {
             gbmGrid    <- expand.grid(
                             .interaction.depth = c(2, 3),
@@ -169,11 +168,10 @@ for (i in 2:2) {
         }
     
     
-## notes:
-## addition of the CDN variables to the fit caused an error
+        ## notes:
+        ## addition of the CDN variables to the fit caused an error
 
-
-system.time({
+        system.time({
         ## perform a fit
         tmp.fit <- try(train(   x=trainDescr,
                                 y=trainClass,
@@ -181,7 +179,7 @@ system.time({
                                 trControl=fitControl,
                                 verbose=FALSE,
                                 tuneGrid=gbmGrid))
-})
+        })
 
         ## handle fit errors
         if (class(tmp.fit)[1] == "try-error") {
@@ -192,7 +190,7 @@ system.time({
             tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, tmp.pred, tmp.confusion, file=out.filename) ## tmp.pred, tmp.confusion
         }
 
     }
