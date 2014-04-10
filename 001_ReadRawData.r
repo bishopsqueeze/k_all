@@ -6,7 +6,7 @@
 ##------------------------------------------------------------------
 ## Load libraries
 ##------------------------------------------------------------------
-library(data.table)
+##library(data.table)
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -27,4 +27,4 @@ test.raw	<- read.csv("test_v2.csv", header=TRUE)
 ##------------------------------------------------------------------
 ## Write the raw data to an .Rdata file
 ##------------------------------------------------------------------
-save(train.raw, test.raw, file="001_allstateRawData.Rdata")
+save(train.raw, test.raw, file="/Users/alexstephens/Development/kaggle/allstate/data/001_allstateRawData.Rdata")

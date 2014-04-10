@@ -40,14 +40,13 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Set-up
 ##------------------------------------------------------------------
-set.seed(123)
 fit.list    <- list()   ## list for output
 
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 10:10) {
+for (i in 2:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -66,10 +65,6 @@ for (i in 10:10) {
     ## Loop over each independent grouping
     ##------------------------------------------------------------------
     ## loop over each LETTER (A, B, ... , G)
-    
-    
-    
-    
     
     groups <- c("AF","BE","CD","G")
     for (j in 4:4) {
@@ -107,13 +102,14 @@ for (i in 10:10) {
         ## define the regression dataframe
         tmp.reg   <- droplevels(tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ])
 
+        ## split data into the response (Class) and variables (Descr)
         tmpClass  <- tmp.reg[ , tmp.y]
         tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
 
+        ## define a train/test sampling split
+        inTrain   <- sample(seq(along = tmpClass), round(0.70*length(tmpClass)))
 
-
-        inTrain   <- sample(seq(along = tmpClass), length(tmpClass)/2)
-
+        ## create the training/test datasets
         trainDescr <- tmpDescr[ inTrain, ]
         testDescr  <- tmpDescr[-inTrain, ]
         trainClass <- tmpClass[ inTrain ]
@@ -126,45 +122,29 @@ for (i in 10:10) {
                     repeats=3,
                     returnResamp="all")
 
-## fit
-system.time({
+## shrinkage == 0.1
+## for i = 2,  ntrees > 200, depth >= 2
+## for j = 10, ntrees < 100, depth == 2 ???
+        gbmGrid    <- expand.grid(  .interaction.depth = c(2,3),
+                                    .n.trees = c(100, 200, 300, 400, 500),
+                                    .shrinkage = 0.1)
+
+        ## perform a fit
+        set.seed(123)
+        system.time({
             gbmFit1 <- train(   x=trainDescr,
                                 y=trainClass,
                                 method="gbm",
                                 preProcess=NULL,
                                 trControl=fitControl,
-                                verbose=FALSE)
-})
-
-
-
-
+                                verbose=FALSE,
+                                tuneGrid=gbmGrid)
+        })
+        
+        
 
     }
-
-
 }
-
-
-
-createDataPartition(y,
-times = 1,
-p = 0.5,
-list = TRUE,
-groups = min(5, length(y)))
-
-
-
-data(iris)
-model <- train(Species~., iris,
-                    method='glmnet',
-                    tuneGrid=expand.grid(
-                    .alpha=0:1,
-                    .lambda=0:30/10))
-
-plot(model)
-coef(model$finalModel, s=model$bestTune$.lambda)
- This code will fit both a lasso model (alpha=1) and a ridge regression model (alpha=0). You can also pick an alpha somewhere between the 2 for a mix of lasso and ridge regression. This is called the elastic net.
 
 
 
