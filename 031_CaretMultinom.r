@@ -7,7 +7,6 @@
 ## Load libraries
 ##------------------------------------------------------------------
 library(caret)
-#library(class)      ## for gbm()
 library(foreach)
 library(doMC)
 
@@ -40,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:2) {
+for (i in 9:9) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -60,7 +59,8 @@ for (i in 2:2) {
     ##------------------------------------------------------------------
     groups <- c("AF","BE","CD","G")
     
-    for (j in 1:length(groups)) {
+    #for (j in 1:length(groups)) {
+    for (j in 3:3) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -94,15 +94,14 @@ for (i in 2:2) {
         } else {
             drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
         }
-        
+
 ## simplify dataset
-#drop.cols <- c( drop.cols,
-#colnames(tmp.data)[grep("^AF", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^BE", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^CD", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^G",  colnames(tmp.data))]
-#)
-        
+drop.cols <- c( drop.cols,
+                colnames(tmp.data)[grep("^AF", colnames(tmp.data))],
+                colnames(tmp.data)[grep("^BE", colnames(tmp.data))],
+                colnames(tmp.data)[grep("^CD", colnames(tmp.data))],
+                colnames(tmp.data)[grep("^G",  colnames(tmp.data))]
+)
 
 
         ## Drop the current group levels
@@ -135,65 +134,27 @@ for (i in 2:2) {
                     repeats=3,
                     returnResamp="all")
 
-        ##
-        if (i < 7) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(200, 300, 400, 500),
-                            .shrinkage = 0.1)
-        } else if (i == 7) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(100, 150, 200),
-                            .shrinkage = 0.1)
-        } else if (i == 8) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(75, 100, 125),
-                            .shrinkage = 0.1)
-        } else if (i == 9) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(50, 75, 100),
-                            .shrinkage = 0.1)
-        } else if (i == 10) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(5, 10, 20, 30, 40, 50),
-                            .shrinkage = 0.1)
-        } else if (i == 11) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3),
-                            .n.trees = c(5, 10, 20, 30),
-                            .shrinkage = 0.1)
-        }
     
-    
-## notes:
-## addition of the CDN variables to the fit caused an error
-
-
 system.time({
         ## perform a fit
-        tmp.fit <- try(train(   x=trainDescr,
+        tmp.fit <- train(       x=trainDescr[,c("cost.s0")],
                                 y=trainClass,
-                                method="gbm",
-                                trControl=fitControl,
-                                verbose=FALSE,
-                                tuneGrid=gbmGrid))
-})
+                                method="multinom",
+                                ## try different methods
+                                trControl=trainControl(method="boot"))
+                                ## multinom specific parameters
+                                ##decay=0,
+                                ##maxit=1000) ##tuneGrid=gbmGrid
 
-        ## handle fit errors
-        if (class(tmp.fit)[1] == "try-error") {
-            cat("Error with fit ...", out.filename, "\n")
-        } else {
-            ## compute predicitons on the hold-out data
-            tmp.pred        <- predict(tmp.fit, newdata=testDescr)
-            tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
-            ## save the results
-            cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
-        }
+
+        ## compute predicitons on the hold-out data
+        #tmp.pred        <- predict(tmp.fit, newdata=testDescr)
+        #tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
+})
+        
+    ## save the results
+    cat("Saving fit to file ...", out.filename, "\n")
+    # save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
 
     }
 }
