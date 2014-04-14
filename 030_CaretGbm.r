@@ -40,7 +40,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:2) {
+for (i in 2:6) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -60,7 +60,8 @@ for (i in 2:2) {
     ##------------------------------------------------------------------
     groups <- c("AF","BE","CD","G")
     
-    for (j in 1:length(groups)) {
+    #for (j in 1:length(groups)) {
+    for (j in 2:2) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -92,21 +93,21 @@ for (i in 2:2) {
         if (i == 1) {
             drop.cols <- c(drop.cols, paste("n",LETTERS[1:7],sep=""), paste("d",LETTERS[1:7],sep=""))
         } else {
-            drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
+            drop.cols <- c(drop.cols, paste("n",LETTERS[1:7],sep=""), paste("d",LETTERS[1:7],sep=""))
         }
         
-## simplify dataset
-#drop.cols <- c( drop.cols,
-#colnames(tmp.data)[grep("^AF", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^BE", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^CD", colnames(tmp.data))],
-#colnames(tmp.data)[grep("^G",  colnames(tmp.data))]
-#)
+        ## attempt to remove independent groups & irrelevant groups associated with the current group
+        drop.groups  <- groups[ -which(groups %in% groups[j]) ]
+        for (k in 1:length(drop.groups)) {
+            drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
+        }
+        drop.groups  <- c(drop.groups, groups[j])
         
 
 
         ## Drop the current group levels
-        drop.cols   <- c(drop.cols, groups)
+        # drop.cols   <- c(drop.cols, groups)
+        drop.cols   <- c(drop.cols, drop.groups)
         
         ## don't drop the reponse variable
         drop.cols   <- drop.cols[ -which(drop.cols %in% eval(tmp.y)) ]
@@ -120,7 +121,7 @@ for (i in 2:2) {
 
         ## define a train/test sampling split
         set.seed(123)
-        inTrain   <- sample(seq(along = tmpClass), round(0.70*length(tmpClass)))
+        inTrain   <- sample(seq(along = tmpClass), round(0.50*length(tmpClass)))
 
         ## create the training/test datasets
         trainDescr <- tmpDescr[ inTrain, ]
@@ -135,25 +136,26 @@ for (i in 2:2) {
                     repeats=3)
 
         ## some test configuration parameters
-        if (i < 7) {
+        if (i < 5) {
             gbmGrid    <- expand.grid(
                             .interaction.depth = c(2, 3),
-                            .n.trees = c(200, 300, 400, 500),
+                            .n.trees = c(100, 200, 300, 400, 500),
                             .shrinkage = 0.1)
-        } else if (i == 7) {
+                            
+        } else if ((i >= 5) & (i < 8)) {
             gbmGrid    <- expand.grid(
                             .interaction.depth = c(2, 3),
-                            .n.trees = c(100, 150, 200),
+                            .n.trees = c(50, 100, 200, 300),
                             .shrinkage = 0.1)
-        } else if (i == 8) {
+         } else if (i == 8) {
             gbmGrid    <- expand.grid(
                             .interaction.depth = c(2, 3),
-                            .n.trees = c(75, 100, 125),
+                            .n.trees = c(25, 50, 75, 100),
                             .shrinkage = 0.1)
         } else if (i == 9) {
             gbmGrid    <- expand.grid(
                             .interaction.depth = c(2, 3),
-                            .n.trees = c(50, 75, 100),
+                            .n.trees = c(25, 50, 75, 100),
                             .shrinkage = 0.1)
         } else if (i == 10) {
             gbmGrid    <- expand.grid(
