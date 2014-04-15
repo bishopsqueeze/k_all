@@ -16,6 +16,7 @@
 ##------------------------------------------------------------------
 library(foreach)
 library(doMC)
+library(caret)
 
 ##------------------------------------------------------------------
 ## register cores
@@ -68,6 +69,16 @@ all.na <- all.na[all.na>0]
 ## blanks == == c("car_value")
 all.bl <- apply(all.data, 2, function(x){sum(ifelse(x=="", 1, 0))})
 all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
+
+    ##------------------------------------------------------------------
+    ## Explore zero-variance, filtering, scaling
+    ##------------------------------------------------------------------
+
+    ## check for zero variance
+    ##nzv <- nearZeroVar(all.data)  ## !!! none detected !!!
+
+    ## numeric variables
+    ##preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "cost")], method=c("BoxCox","center","scale"))
 
 ##------------------------------------------------------------------
 ## Assign state factors a numeric code
@@ -159,7 +170,7 @@ all.copy$dayfrac.nrm         <- num.min / (24*60)
 all.copy$custday_key         <- paste(all.copy$customer_ID, all.copy$day, sep="_")
 all.copy$custday_key.u       <- as.vector(unlist(tapply(all.copy$custday_key, all.copy$customer_ID, numUnique)))
 
-## estiamted the cumulative time spent shopping for plans
+## estimated the cumulative time spent shopping for plans
 ##  - compute a period-over-period elapsed time, but ...
 ##  - ... correct the elapsed time s/t the first observation is 0 and any
 ##    negative values are set to zero (we might observe a negative elapsed
@@ -193,6 +204,9 @@ all.copy[, paste("n",LETTERS[1:7],sep="")] <- tmp.res
 
 
 ## identify the number of "updates"/"changes" (per customer) in a "static" form entry
+##
+## *** swap these to a binary variable for >1 entry using an ifelse()
+##
 all.copy$day.u               <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
 all.copy$group_size.u        <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
 all.copy$homeowner.u         <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
