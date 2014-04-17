@@ -69,7 +69,7 @@ for (i in 2:11) {
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_TEST.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_LGOCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -126,7 +126,6 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         tmp.reg   <- droplevels(tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ])
 
-
         ## split data into the response (Class) and variables (Descr)
         tmpClass  <- tmp.reg[ , tmp.y]
         tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
@@ -141,19 +140,19 @@ for (i in 2:11) {
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 10000
-        if ( length(tmpClass) > max.reg ) {
-            reg.p   <- max.reg/length(tmpClass)
-        } else {
-            reg.p   <- 1
-        }
-        reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
+        #max.reg <- 10000
+        #if ( length(tmpClass) > max.reg ) {
+        #    reg.p   <- max.reg/length(tmpClass)
+        #} else {
+        #    reg.p   <- 1
+        #}
+        #reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
 
         ##------------------------------------------------------------------
         ## create the smaller samples used for exploring the tuning parameters
         ##------------------------------------------------------------------
-        tmpClass  <- tmpClass[reg.idx[[1]]]
-        tmpDescr  <- tmpDescr[reg.idx[[1]], ]
+        #tmpClass  <- tmpClass[reg.idx[[1]]]
+        #tmpDescr  <- tmpDescr[reg.idx[[1]], ]
 
         ##------------------------------------------------------------------
         ## create an index of multiple samples for use in the tuning parameter search
@@ -164,26 +163,210 @@ for (i in 2:11) {
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         fitControl <- trainControl(
-                        method="cv",
+                        method="LGOCV",
                         number=10,
+                        savePredictions=TRUE,
                         index=smp.list)
 
         ##------------------------------------------------------------------
-        ## some test configuration parameters
+        ## AF configuration parameters
         ##------------------------------------------------------------------
-        if (i < 12) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3, 4),
-                            .n.trees = c(5, 10, 20, 40, 80, 160, 240, 320, 400),
-                            .shrinkage = 0.1)
+        ## SP_02_AF n.trees = 80, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_03_AF n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_04_AF n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_05_AF n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
+        ## SP_06_AF n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
+        ## SP_07_AF n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_08_AF n.trees = 20, interaction.depth = 3 and shrinkage = 0.1
+        ## SP_09_AF n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_10_AF n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_11_AF n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
+        if (j == 1) {
+            
+            if (i == 2) {
+                gbm.d <- 2
+                gbm.n <- 80
+            } else if (i == 3) {
+                gbm.d <- 2
+                gbm.n <- 40
+            } else if (i == 4) {
+                gbm.d <- 2
+                gbm.n <- 10
+            } else if (i == 5) {
+                gbm.d <- 3
+                gbm.n <- 10
+            } else if (i == 6) {
+                gbm.d <- 3
+                gbm.n <- 10
+            } else if (i == 7) {
+                gbm.d <- 2
+                gbm.n <- 20
+            } else if (i == 8) {
+                gbm.d <- 3
+                gbm.n <- 20
+            } else if (i == 9) {
+                gbm.d <- 2
+                gbm.n <- 10
+            } else if (i == 10) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 11) {
+                gbm.d <- 2
+                gbm.n <- 20
+            }
+            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.1)
+ 
+        ##------------------------------------------------------------------
+        ## BE configuration parameters
+        ##------------------------------------------------------------------
+        ## SP_02_BE n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_03_BE n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_04_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_05_BE n.trees = 40, interaction.depth = 3 and shrinkage = 0.1
+        ## SP_06_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_07_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_08_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_09_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_10_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_11_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        } else if (j == 2) {
+            
+            if (i == 2) {
+                gbm.d <- 4
+                gbm.n <- 40
+            } else if (i == 3) {
+                gbm.d <- 4
+                gbm.n <- 40
+            } else if (i == 4) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 5) {
+                gbm.d <- 3
+                gbm.n <- 40
+            } else if (i == 6) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 7) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 8) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 9) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 10) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 11) {
+                gbm.d <- 2
+                gbm.n <- 5
+            }
+            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.1)
+            
+        ##------------------------------------------------------------------
+        ## CD configuration parameters
+        ##------------------------------------------------------------------
+        ## SP_02_CD n.trees = 20, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_03_CD n.trees = 10, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_04_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_05_CD n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_06_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_07_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_08_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_09_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_10_CD n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_11_CD n.trees = 20, interaction.depth = 3 and shrinkage = 0.1
+        } else if (j == 3) {
+            
+            if (i == 2) {
+                gbm.d <- 4
+                gbm.n <- 20
+            } else if (i == 3) {
+                gbm.d <- 4
+                gbm.n <- 10
+            } else if (i == 4) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 5) {
+                gbm.d <- 2
+                gbm.n <- 10
+            } else if (i == 6) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 7) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 8) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 9) {
+                gbm.d <- 2
+                gbm.n <- 5
+            } else if (i == 10) {
+                gbm.d <- 2
+                gbm.n <- 20
+            } else if (i == 11) {
+                gbm.d <- 3
+                gbm.n <- 20
+            }
+            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.1)
+            
+        ##------------------------------------------------------------------
+        ## G configuration parameters
+        ##------------------------------------------------------------------
+        ## SP_02_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_03_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_04_G n.trees = 10, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_05_G n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
+        ## SP_06_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_07_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_08_G n.trees = 80, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_09_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
+        ## SP_10_G n.trees = 20, interaction.depth = 4 and shrinkage = 0.1
+        ## SP_11_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
+        } else if (j == 4) {
+            
+            if (i == 2) {
+                gbm.d <- 4
+                gbm.n <- 40
+            } else if (i == 3) {
+                gbm.d <- 2
+                gbm.n <- 40
+            } else if (i == 4) {
+                gbm.d <- 4
+                gbm.n <- 10
+            } else if (i == 5) {
+                gbm.d <- 3
+                gbm.n <- 10
+            } else if (i == 6) {
+                gbm.d <- 2
+                gbm.n <- 10
+            } else if (i == 7) {
+                gbm.d <- 4
+                gbm.n <- 40
+            } else if (i == 8) {
+                gbm.d <- 4
+                gbm.n <- 80
+            } else if (i == 9) {
+                gbm.d <- 2
+                gbm.n <- 40
+            } else if (i == 10) {
+                gbm.d <- 4
+                gbm.n <- 20
+            } else if (i == 11) {
+                gbm.d <- 2
+                gbm.n <- 10
+            }
+            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.1)
+            
         }
+        
     
         ##------------------------------------------------------------------
-        ## Notes:
-        ## - The CDN variables to the fit caused an error ... prob due to a
-        ##   zero observations for rare classes being samples
+        ## Performing LGOCV to ensure sample completeness
         ##------------------------------------------------------------------
-        system.time({
+        ##system.time({
         ## perform a fit
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
@@ -191,7 +374,7 @@ for (i in 2:11) {
                                 trControl=fitControl,
                                 verbose=FALSE,
                                 tuneGrid=gbmGrid))
-        })
+        ##})
 
         ##------------------------------------------------------------------
         ## handle fit errors
@@ -209,6 +392,17 @@ for (i in 2:11) {
 
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
