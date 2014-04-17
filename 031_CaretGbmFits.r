@@ -34,8 +34,14 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Define the list of training data panels
 ##------------------------------------------------------------------
+
+## load the training data
 panel.files     <- dir("./panels")[(grep("Train", dir("./panels")))]
 panel.num       <- length(panel.files)
+
+## load the test data
+test.files     <- dir("./panels")[(grep("Test", dir("./panels")))]
+
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
@@ -44,14 +50,21 @@ for (i in 2:11) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
-
+    tmp.testname    <- test.files[i]
+    
     ## report the loaded panel
     cat("Loading ... ", tmp.filename, "\n")
 
-    ## load file (should generate an oject called tmp.object)
+    ##------------------------------------------------------------------
+    ## load files (should generate an oject called tmp.object)
+    ##------------------------------------------------------------------
+    ## test data
+    load(paste("./panels/",tmp.testname,sep=""))
+    test.data   <- tmp.object$data
+    test.len    <- tmp.object$len
+    
+    ## training data
     load(paste("./panels/",tmp.filename,sep=""))
-
-    ## define the dataset
     tmp.data    <- tmp.object$data
     tmp.len     <- tmp.object$len
 
@@ -62,14 +75,14 @@ for (i in 2:11) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     for (j in 1:length(groups)) {
-    
+        
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
         tmp.fit <- NULL
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_LGOCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_LGOCV_V2.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -125,11 +138,13 @@ for (i in 2:11) {
         ## define the BASE regression dataframe
         ##------------------------------------------------------------------
         tmp.reg   <- droplevels(tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ])
+        tmp.test  <- droplevels(test.data[ , -which(colnames(test.data) %in% drop.cols) ])
 
         ## split data into the response (Class) and variables (Descr)
         tmpClass  <- tmp.reg[ , tmp.y]
         tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
-
+        testDescr <- tmp.test
+        
         ##------------------------------------------------------------------
         ## Define the samples to be used since there is a danger that
         ## thinly populated classes might cause a sampling failure
@@ -382,14 +397,10 @@ for (i in 2:11) {
         if (class(tmp.fit)[1] == "try-error") {
             cat("Error with fit ...", out.filename, "\n")
         } else {
-            ## compute predicitons on the hold-out data
-            #tmp.pred        <- predict(tmp.fit, newdata=testDescr)
-            #tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, tmpClass, tmpDescr, testDescr, file=out.filename) ## tmp.pred, tmp.confusion
         }
-
     }
 }
 
