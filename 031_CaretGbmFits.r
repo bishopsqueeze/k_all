@@ -46,7 +46,8 @@ test.files     <- dir("./panels")[(grep("Test", dir("./panels")))]
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:11) {
+set.seed(123)
+for (i in 2:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -74,7 +75,8 @@ for (i in 2:11) {
     ##------------------------------------------------------------------
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
-    for (j in 1:length(groups)) {
+    #for (j in 1:length(groups)) {
+    for (j in 1:1) {
         
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -399,7 +401,7 @@ for (i in 2:11) {
         } else {
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, tmpClass, tmpDescr, testDescr, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, tmpClass, tmpDescr, tmp.data, testDescr, test.data, file=out.filename) ## tmp.pred, tmp.confusion
         }
     }
 }

@@ -1,7 +1,6 @@
 ##------------------------------------------------------------------
 ## The purpose of this script is to:
-##	1. Create the raw materials for a panel dataset to be used in a
-##     regression model for the insurance purchase targets
+##	1.
 ##------------------------------------------------------------------
 
 ##------------------------------------------------------------------
@@ -19,16 +18,41 @@ library(MASS)
 ##------------------------------------------------------------------
 rm(list=ls())
 
+##******************************************************************
+## Step 1: Load the complete panel
+##******************************************************************
+
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_allsample_lgocv")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data")
+
+##------------------------------------------------------------------
+## Load the full set of consolidated train/test observations
+##------------------------------------------------------------------
+load("003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
+
+##------------------------------------------------------------------
+## Create a slim data frame
+##------------------------------------------------------------------
+pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LETTERS[1:7])]
+pred.test[ , c("AF.pred", "BE.pred", "CD.pred", "G.pred") ] <- "99"
+
+
+##******************************************************************
+## Step 2: Load the raw materials for predictions
+##******************************************************************
+
+##------------------------------------------------------------------
+## Set the working directory
+##------------------------------------------------------------------
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored")
 
 ##------------------------------------------------------------------
 ## Load fit data
 ##------------------------------------------------------------------
+
 fit.files   <- dir(, pattern="Rdata")
-reg.list    <- list
 
 for (i in 1:length(fit.files)) {
 
@@ -39,97 +63,116 @@ for (i in 1:length(fit.files)) {
    tmp.file <- fit.files[i]
    tmp.name <- gsub(".Rdata", ".fit", tmp.file)
    
+   ## define the panle name
+   tmp.sp       <- strsplit(tmp.file,"[.]")[[1]][1]
+   tmp.group    <- strsplit(strsplit(tmp.file,"[.]")[[1]][2],"_")[[1]][2]
+   
    ## load the fit into a list
    load(tmp.file)
-   assign(tmp.name, tmp.fit)
+   
+   ## calculate the predicted group
+   tmp.pred <-  predict(tmp.fit, newdata=testDescr, type="raw")
+   
+   #assign(tmp.name, tmp.fit)
+   test.data[ , c(paste(tmp.group,".pred",sep="")) ]    <- tmp.pred
+   
+   ## map the results into the prediction data frame
+   pred.test[  which(pred.test$key %in% test.data$key) , c(paste(tmp.group,".pred",sep="")) ]   <- as.character(tmp.pred)
+   
    
 }
 
-
 ##------------------------------------------------------------------
-## Set the working directory
+## Split the results into the proper columns
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/panels")
-
-##------------------------------------------------------------------
-## Load data to predict
-##------------------------------------------------------------------
-load("004_allstatePanelData_Test.Rdata")
-
-
-
-##------------------------------------------------------------------
-## First iteration -- loop to be sure
-##------------------------------------------------------------------
-
-## create a shell matrix for the fits
-final.pred                  <- te.pred[ , c("customer_ID", LETTERS[1:7])]
-final.pred[, LETTERS[1:7]]  <- 0
-
-
-## isolate the unique timesteps
-uniq.time    <- unique(te.pred$shopping_pt)
-
-for (i in 1:length(uniq.time))  {
+for (i in 1:7) {
     
-    tmp.time    <- uniq.time[i]
-    tmp.data    <- te.pred[ which(te.pred$shopping_pt == tmp.time) , ]
-    
-    ## loop over the set of choices and predict
-    for (j in 1:7) {
-
-        tmp.fitname <- paste(LETTERS[j],"_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),".fit",sep="")
-        tmp.fit     <- get(tmp.fitname)
-        tmp.pred    <- predict(tmp.fit, newdata=tmp.data, type="class")
-        
-        ## load the matrix
-        row.idx                             <- which(final.pred[ , c("customer_ID")] %in% tmp.data$customer_ID )
-        #        col.idx                             <- rep(which(colnames(final.pred) %in% j), length(row.idx))
-        final.pred[row.idx, LETTERS[j]]              <- as.vector(tmp.pred)
-        
+    if (LETTERS[i] == "A") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,1,1))
+    } else if (LETTERS[i] == "B") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,1,1))
+    } else if (LETTERS[i] == "C") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,1,1))
+    } else if (LETTERS[i] == "D") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,2,2))
+    } else if (LETTERS[i] == "E") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,2,2))
+    } else if (LETTERS[i] == "F") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,2,2))
+    } else if (LETTERS[i] == "G") {
+        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$G.pred,1,1))
     }
+    
 }
 
 
-##------------------------------------------------------------------
-## Extract the last quoted plan benchmark
-##------------------------------------------------------------------
-lastquoted.pred  <- as.data.frame(te.pred[ , c(c("customer_ID"), LETTERS[1:7])])
+##******************************************************************
+## Step 3: Consolidate the prediction(s)
+##******************************************************************
 
-##------------------------------------------------------------------
-## Construct submissions
-##------------------------------------------------------------------
+## collapse individual predicions
+pred.test$ABCDEFG.lq    <- apply(pred.test[, LETTERS[1:7]], 1, paste, collapse="")
+pred.test$B_ONLY.pred   <- apply(pred.test[, c("A", "B.pred", "C", "D", "E", "F", "G")], 1, paste, collapse="")
+pred.test$E_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
+pred.test$G_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F", "G.pred")], 1, paste, collapse="")
+pred.test$ABCDEFG.pred  <- apply(pred.test[, paste(LETTERS[1:7],".pred",sep="")], 1, paste, collapse="")
+
+## isolate the last quote for each customer
+sub.idx                 <- tapply(pred.test$shopping_pt, pred.test$customer_ID, function(x){ which(x == max(x)) })
+sub.key                 <- paste(names(sub.idx),sub.idx,sep="_")
+
+## create the subsetted data
+pred.sub                <- pred.test[ which(pred.test$key %in% sub.key), ]
+
+
+##******************************************************************
+## Step 4: Construct submissions
+##******************************************************************
+
 lastquoted.sub  <- data.frame(
-                    customer_ID = as.integer(lastquoted.pred$customer_ID),
-                    plan = as.character(apply(lastquoted.pred[, LETTERS[1:7]], 1, paste, collapse="")) )
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$ABCDEFG.lq) )
 
-final.sub       <- data.frame(
-                    customer_ID = as.integer(final.pred$customer_ID),
-                    plan = as.character(apply(final.pred[, LETTERS[1:7]], 1, paste, collapse="")) )
+gbm_bonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$B_ONLY.pred) )
 
+gbm_eonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$E_ONLY.pred) )
 
-##------------------------------------------------------------------
-## Write submissions to file
-##------------------------------------------------------------------
-write.csv(lastquoted.sub, file="S000_lastquoted.csv", row.names=FALSE)
-write.csv(final.sub, file="S001_initialMultinom.csv", row.names=FALSE)
+gbm_gonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$G_ONLY.pred) )
 
-
-##------------------------------------------------------------------
-## Write the data to an .Rdata file
-##------------------------------------------------------------------
-##save(fit.list, file="S001_allstateRawData.Rdata")
-
+gbm_all.sub     <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$ABCDEFG.pred) )
 
 
+##******************************************************************
+## Step 5: Write submissions to file
+##******************************************************************
+write.csv(lastquoted.sub, file="S002_lastquoted.csv", row.names=FALSE)
+write.csv(gbm_bonly.sub,  file="S002_gbm_bonly.csv", row.names=FALSE)
+write.csv(gbm_eonly.sub,  file="S002_gbm_eonly.csv", row.names=FALSE)
+write.csv(gbm_gonly.sub,  file="S002_gbm_gonly.csv", row.names=FALSE)
+write.csv(gbm_all.sub,    file="S002_gbm_all.csv", row.names=FALSE)
 
 
 
 
+##******************************************************************
+## Results
+##******************************************************************
 
+## G-only       == 0.54021
+## All          == 0.53967
+## Last quoted  == 0.53793
+## B-only       == 0.53739
+## E-only       == 0.53733
 
-
-
+## Next steps would be to check the CD (combined) results ... and then both CD & G (if CD makes an improvement)
 
 
 
