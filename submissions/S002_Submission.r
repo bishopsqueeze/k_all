@@ -6,12 +6,9 @@
 ##------------------------------------------------------------------
 ## Load libraries
 ##------------------------------------------------------------------
-library(glmnet)
-library(foreign)
-library(nnet)
-library(ggplot2)
-library(reshape2)
-library(MASS)
+library(gbm)
+library(plyr)
+library(caret)
 
 ##------------------------------------------------------------------
 ## Clear the workspace
@@ -78,8 +75,6 @@ for (i in 1:length(fit.files)) {
    
    ## map the results into the prediction data frame
    pred.test[  which(pred.test$key %in% test.data$key) , c(paste(tmp.group,".pred",sep="")) ]   <- as.character(tmp.pred)
-   
-   
 }
 
 ##------------------------------------------------------------------
@@ -117,6 +112,12 @@ pred.test$E_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E.pred", "F"
 pred.test$G_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F", "G.pred")], 1, paste, collapse="")
 pred.test$ABCDEFG.pred  <- apply(pred.test[, paste(LETTERS[1:7],".pred",sep="")], 1, paste, collapse="")
 
+## collapse paired predictions
+pred.test$CD_ONLY.pred   <- apply(pred.test[, c("A", "B", "C.pred", "D.pred", "E", "F", "G")], 1, paste, collapse="")
+pred.test$AF_ONLY.pred   <- apply(pred.test[, c("A.pred", "B", "C", "D", "E", "F.pred", "G")], 1, paste, collapse="")
+pred.test$BE_ONLY.pred   <- apply(pred.test[, c("A", "B.pred", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
+
+
 ## isolate the last quote for each customer
 sub.idx                 <- tapply(pred.test$shopping_pt, pred.test$customer_ID, function(x){ which(x == max(x)) })
 sub.key                 <- paste(names(sub.idx),sub.idx,sep="_")
@@ -133,6 +134,7 @@ lastquoted.sub  <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$ABCDEFG.lq) )
 
+## single predictions
 gbm_bonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$B_ONLY.pred) )
@@ -145,6 +147,20 @@ gbm_gonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$G_ONLY.pred) )
 
+## paired predictions
+gbm_cdonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$CD_ONLY.pred) )
+
+gbm_afonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$AF_ONLY.pred) )
+
+gbm_beonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$BE_ONLY.pred) )
+
+## everything together
 gbm_all.sub     <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$ABCDEFG.pred) )
@@ -153,12 +169,15 @@ gbm_all.sub     <- data.frame(
 ##******************************************************************
 ## Step 5: Write submissions to file
 ##******************************************************************
-write.csv(lastquoted.sub, file="S002_lastquoted.csv", row.names=FALSE)
-write.csv(gbm_bonly.sub,  file="S002_gbm_bonly.csv", row.names=FALSE)
-write.csv(gbm_eonly.sub,  file="S002_gbm_eonly.csv", row.names=FALSE)
-write.csv(gbm_gonly.sub,  file="S002_gbm_gonly.csv", row.names=FALSE)
-write.csv(gbm_all.sub,    file="S002_gbm_all.csv", row.names=FALSE)
+#write.csv(lastquoted.sub, file="S002_lastquoted.csv", row.names=FALSE)
+#write.csv(gbm_bonly.sub,  file="S002_gbm_bonly.csv", row.names=FALSE)
+#write.csv(gbm_eonly.sub,  file="S002_gbm_eonly.csv", row.names=FALSE)
+#write.csv(gbm_gonly.sub,  file="S002_gbm_gonly.csv", row.names=FALSE)
+#write.csv(gbm_all.sub,    file="S002_gbm_all.csv", row.names=FALSE)
 
+write.csv(gbm_cdonly.sub, file="S002_gbm_cdonly.csv", row.names=FALSE)
+write.csv(gbm_afonly.sub, file="S002_gbm_afonly.csv", row.names=FALSE)
+write.csv(gbm_beonly.sub, file="S002_gbm_beonly.csv", row.names=FALSE)
 
 
 
@@ -173,6 +192,59 @@ write.csv(gbm_all.sub,    file="S002_gbm_all.csv", row.names=FALSE)
 ## E-only       == 0.53733
 
 ## Next steps would be to check the CD (combined) results ... and then both CD & G (if CD makes an improvement)
+
+##******************************************************************
+## Post-mortem
+##******************************************************************
+
+## try to identify those customers that you think are either correct or wrong
+
+##------------------------------------------------------------------
+## single parameter changes ... but really only the g choice was modeled
+## in isolation ... as the others were part of a modeled pair (AF, CD, BE)
+##------------------------------------------------------------------
+
+## gmb_bonly (of these 138 differences a net of -9 are correct)
+#tmp.sub             <- cbind(lastquoted.sub, gbm_bonly.sub$plan)
+#colnames(tmp.sub)   <- c("customer_ID", "lq", "b_only")
+#diff.b_only         <- subset(tmp.sub, as.character(lq) != as.character(b_only))
+
+## gmb_eonly (of these 141 differences a net of -10 are correct)
+#tmp.sub             <- cbind(lastquoted.sub, gbm_eonly.sub$plan)
+#colnames(tmp.sub)   <- c("customer_ID", "lq", "e_only")
+#diff.e_only         <- subset(tmp.sub, as.character(lq) != as.character(e_only))
+
+## gmb_gonly (of these 902 differences a net of +38 are correct)
+tmp.sub             <- cbind(lastquoted.sub, gbm_gonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "g_only")
+diff.g_only         <- subset(tmp.sub, as.character(lq) != as.character(g_only))
+
+##------------------------------------------------------------------
+## paired parameter changes
+##------------------------------------------------------------------
+
+## gmb_gonly (of these 938 differences a net of -12 are correct)
+tmp.sub             <- cbind(lastquoted.sub, gbm_afonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "af_only")
+diff.af_only         <- subset(tmp.sub, as.character(lq) != as.character(af_only))
+
+## gmb_gonly (of these 684 differences a net of -0 are correct)
+tmp.sub             <- cbind(lastquoted.sub, gbm_cdonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "cd_only")
+diff.cd_only         <- subset(tmp.sub, as.character(lq) != as.character(cd_only))
+
+## gmb_gonly (of these 141 differences a net of -9 are correct)
+tmp.sub             <- cbind(lastquoted.sub, gbm_beonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "be_only")
+diff.be_only         <- subset(tmp.sub, as.character(lq) != as.character(be_only))
+
+## gbm_all (of these 2263 are correct)
+tmp.sub             <- cbind(lastquoted.sub, gbm_all.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "all")
+diff.all            <- subset(tmp.sub, as.character(lq) != as.character(all))
+
+
+
 
 
 
