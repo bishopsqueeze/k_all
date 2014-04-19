@@ -175,6 +175,7 @@ for (i in 2:2) {
         ##------------------------------------------------------------------
         fitControl <- trainControl(
                         method="LGOCV",
+                        p=0.80,
                         #returnData=TRUE,
                         #returnResamp="all",
                         #savePredictions=TRUE,

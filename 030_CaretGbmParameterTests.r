@@ -40,7 +40,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 9:9) {
+for (i in 11:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -62,7 +62,7 @@ for (i in 9:9) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 1:1) {
+    for (j in 4:4) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -70,7 +70,7 @@ for (i in 9:9) {
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_LGOCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -104,10 +104,14 @@ for (i in 9:9) {
         ##------------------------------------------------------------------
         ## attempt to remove independent groups & irrelevant groups associated with the current group
         ##------------------------------------------------------------------
-        drop.groups  <- groups[ -which(groups %in% groups[j]) ]
-        for (k in 1:length(drop.groups)) {
-            drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
-        }
+        #drop.groups  <- groups[ -which(groups %in% groups[j]) ]
+        #for (k in 1:length(drop.groups)) {
+        #    drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
+        #}
+
+## modified the above ... see if this causes an error w/the g-only fit
+drop.groups  <- groups[ -which(groups %in% groups[j]) ]
+        
         drop.groups  <- c(drop.groups, groups[j])
         
 
@@ -142,12 +146,13 @@ for (i in 9:9) {
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 10000
+        max.reg <- 20000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
             reg.p   <- 1
         }
+        set.seed(1234)
         reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
 
         ##------------------------------------------------------------------
@@ -159,29 +164,47 @@ for (i in 9:9) {
         ##------------------------------------------------------------------
         ## create an index of multiple samples for use in the tuning parameter search
         ##------------------------------------------------------------------
+        set.seed(4321)
         smp.list    <- createDataPartition(tmpClass, p=0.80, list=TRUE, times=10)
+
+        ##------------------------------------------------------------------
+        ## set-up the tuning parameters
+        ##------------------------------------------------------------------
+        if (i < 12) {
+            gbmGrid    <- expand.grid(
+            .interaction.depth = c(5, 7, 9),
+            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500, 750, 1000),
+            .shrinkage = c(0.01, 0.1))
+        }
 
         ##------------------------------------------------------------------
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
+        num.cv      <- 5
+        num.repeat  <- 1
+        num.total   <- num.cv * num.repeat
+        
+        set.seed(123)
+        seeds <- vector(mode = "list", length = (num.total + 1))
+        for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
+        seeds[[num.total+1]] <- sample.int(1000, 1)
+        
+        ## test of repeated CV for G-class
         fitControl <- trainControl(
-                        method="LGOCV",
-                        #returnData=TRUE,
-                        #returnResamp="all",
-                        #savePredictions=TRUE,
-                        #verboseIter=TRUE,
-                        number=10,
-                        index=smp.list)
-
-        ##------------------------------------------------------------------
-        ## some test configuration parameters
-        ##------------------------------------------------------------------
-        if (i < 12) {
-            gbmGrid    <- expand.grid(
-                            .interaction.depth = c(2, 3, 4),
-                            .n.trees = c(5, 10, 20, 40, 80, 160, 240, 320, 400),
-                            .shrinkage = 0.1)
-        }
+                            method="repeatedcv",
+                            number=num.cv,
+                            repeats=num.repeat,
+                            seeds=seeds)
+        
+        #fitControl <- trainControl(
+        #                method="LGOCV",
+        #                p=0.80,
+        #                #returnData=TRUE,
+        #                #returnResamp="all",
+        #                #savePredictions=TRUE,
+        #                #verboseIter=TRUE,
+        #                number=10,
+        #                index=smp.list)
     
         ##------------------------------------------------------------------
         ## Notes:
@@ -198,12 +221,21 @@ for (i in 9:9) {
                                 tuneGrid=gbmGrid))
         })
 
+
+        
         ##------------------------------------------------------------------
         ## handle fit errors
         ##------------------------------------------------------------------
         if (class(tmp.fit)[1] == "try-error") {
             cat("Error with fit ...", out.filename, "\n")
         } else {
+            
+            ## plot the fit summary
+            plot.name <- gsub("Rdata","pdf",out.filename)
+            pdf(plot.name)
+                plot(tmp.fit)
+            dev.off()
+            
             ## compute predicitons on the hold-out data
             #tmp.pred        <- predict(tmp.fit, newdata=testDescr)
             #tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
