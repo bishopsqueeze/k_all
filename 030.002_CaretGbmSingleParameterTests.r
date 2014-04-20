@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 7:7) {
+for (i in 2:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -62,7 +62,7 @@ for (i in 7:7) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 1:1) {
+    for (j in 7:7) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -204,7 +204,7 @@ for (i in 7:7) {
             gbmGrid    <- expand.grid(
             .interaction.depth = c(7, 9),
             .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500, 1000),
-            .shrinkage = c(0.01, 0.1))
+            .shrinkage = c(0.001, 0.01))
         }
 
         ##------------------------------------------------------------------
@@ -266,78 +266,9 @@ for (i in 7:7) {
 
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-    ##save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
+##save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
         }
     }
 }
-
-
-##------------------------------------------------------------------
-## Results
-##------------------------------------------------------------------
-##
-## LOGCV Fails:
-##
-## Loading ...  004_allstatePanelData_Train.SP_08.Rdata
-## Response Variable ...  AF
-## Loading ...  004_allstatePanelData_Train.SP_09.Rdata
-## Response Variable ...  AF
-##------------------------------------------------------------------
-##
-## SP_02_AF n.trees = 80, interaction.depth = 2 and shrinkage = 0.1
-## SP_03_AF n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
-## SP_04_AF n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-## SP_05_AF n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
-## SP_06_AF n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
-## SP_07_AF n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
-## SP_08_AF n.trees = 20, interaction.depth = 3 and shrinkage = 0.1
-## SP_09_AF n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-## SP_10_AF n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_11_AF n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
-##
-## SP_02_BE n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-## SP_03_BE n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-## SP_04_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_05_BE n.trees = 40, interaction.depth = 3 and shrinkage = 0.1
-## SP_06_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_07_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_08_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_09_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_10_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_11_BE n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-##
-## SP_02_CD n.trees = 20, interaction.depth = 4 and shrinkage = 0.1
-## SP_03_CD n.trees = 10, interaction.depth = 4 and shrinkage = 0.1
-## SP_04_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_05_CD n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-## SP_06_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_07_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_08_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_09_CD n.trees =  5, interaction.depth = 2 and shrinkage = 0.1
-## SP_10_CD n.trees = 20, interaction.depth = 2 and shrinkage = 0.1
-## SP_11_CD n.trees = 20, interaction.depth = 3 and shrinkage = 0.1
-##
-## SP_02_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-## SP_03_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
-## SP_04_G n.trees = 10, interaction.depth = 4 and shrinkage = 0.1
-## SP_05_G n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
-## SP_06_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-## SP_07_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-## SP_08_G n.trees = 80, interaction.depth = 4 and shrinkage = 0.1
-## SP_09_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
-## SP_10_G n.trees = 20, interaction.depth = 4 and shrinkage = 0.1
-## SP_11_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-
-
-
-
-
-
-
-
-
-
-
-
 
 
