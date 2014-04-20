@@ -51,7 +51,7 @@ for (n in 0:1) {
     ## that all of prior choice variables lie to the right of this column
     ##------------------------------------------------------------------
     choice.idx     <- which(colnames(smp) == "ABCDEFG.T")
-    cost.idx    <- which(colnames(smp) == "cost.s0")
+    cost.idx       <- which(colnames(smp) == "cost.s0")
 
     ##------------------------------------------------------------------
     ## Loop over the time/choice combinations and load a separate panel
@@ -77,16 +77,19 @@ for (n in 0:1) {
         panel.list[[panel_id]]$len  <- nrow(tmp.dat)
     }
 
-
     ##------------------------------------------------------------------
-    ## Create the {"AF","BE","CD","G"} group
+    ## Create choice histories for ...
+    ##  - single choices    {"A","B","C","D","E","F","G"}
+    ##  - group choices     {"AF","BE","CD","G"}
     ##------------------------------------------------------------------
     ## Locations:   ABCDEFG
     ##              1234567
     ##------------------------------------------------------------------
-    panel.names <- names(panel.list)
-    group.names <- c("AF","BE","CD","G")
-
+    panel.names  <- names(panel.list)
+    group.names  <- c("AF","BE","CD","G")
+    single.names <- c("A","B","C","D","E","F","G")
+    
+    ## loop over each panel and populate the prior choice & choice cluster histories
     for (i in 1:length(panel.names)) {
         
         cat("Panel Update Iteration ",i, " ... of 11 \n")
@@ -94,22 +97,86 @@ for (n in 0:1) {
         panel_id    <- panel.names[i]
         tmp.sp      <- as.integer(substr(panel.list[[panel_id]]$sp,4,5))
         tmp.dat     <- panel.list[[panel_id]]$data
+
+        ##------------------------------------------------------------------
+        ## extract single-name non-termainal results
+        ##------------------------------------------------------------------
+        for (j in 1:length(single.names)) {
     
-        ## concatenate shopping results for both datasets
+            tmp.single  <- single.names[j]
+
+            ## for each of the prior, concatenate non-terminal results
+            for (k in 1:(tmp.sp)) {
+                if (tmp.single == "A") {
+                    tmp.AN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],1,1)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.AN)
+                } else if (tmp.single == "B") {
+                    tmp.BN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],2,2)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.BN)
+                } else if (tmp.single == "C") {
+                    tmp.CN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],3,3)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.CN)
+                } else if (tmp.single == "D") {
+                    tmp.DN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],4,4)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.DN)
+                } else if (tmp.single == "E") {
+                    tmp.EN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],5,5)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.EN)
+                } else if (tmp.single == "F") {
+                    tmp.FN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],6,6)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.FN)
+                } else if (tmp.single == "G") {
+                    tmp.GN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],7,7)
+                    tmp.dat[ , paste(tmp.single,k-1,sep="")] <- as.factor(tmp.GN)
+                }
+            }
+
+            ## concatenate terminal results for training data only
+            if (n == 1) {
+                if (tmp.single == "A") {
+                    tmp.AT                              <- substr(tmp.dat$ABCDEFG.T,1,1)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.AT)
+                } else if (tmp.single == "B") {
+                    tmp.BT                              <- substr(tmp.dat$ABCDEFG.T,2,2)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.BT)
+                } else if (tmp.single == "C") {
+                    tmp.CT                              <- substr(tmp.dat$ABCDEFG.T,3,3)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.CT)
+                } else if (tmp.single == "D") {
+                    tmp.DT                              <- substr(tmp.dat$ABCDEFG.T,4,4)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.DT)
+                } else if (tmp.single == "E") {
+                    tmp.ET                              <- substr(tmp.dat$ABCDEFG.T,5,5)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.ET)
+                } else if (tmp.single == "F") {
+                    tmp.FT                              <- substr(tmp.dat$ABCDEFG.T,6,6)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.FT)
+                } else if (tmp.single == "G") {
+                    tmp.GT                              <- substr(tmp.dat$ABCDEFG.T,7,7)
+                    tmp.dat[, paste(tmp.single,"T",sep="")] <- as.factor(tmp.GT)
+                }
+            }
+            
+        } ## /// end of single parameter loop
+        
+
+        ##------------------------------------------------------------------
+        ## extract group/cluster names
+        ##------------------------------------------------------------------
         for (j in 1:length(group.names)) {
         
             tmp.gp  <- group.names[j]
             
             ## concatenate non-terminal results (redundant ????)
-            if (tmp.gp == "AF") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$A,tmp.dat$F,sep="")))
-            } else if (tmp.gp == "BE") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$B,tmp.dat$E,sep="")))
-            } else if (tmp.gp == "CD") {
-                tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$C,tmp.dat$D,sep="")))
-            } else if (tmp.gp == "G") {
-                #tmp.dat[ , tmp.gp] <- as.factor(tmp.dat$G)
-            }
+            #if (tmp.gp == "AF") {
+            #    tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$A,tmp.dat$F,sep="")))
+            #} else if (tmp.gp == "BE") {
+            #    tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$B,tmp.dat$E,sep="")))
+            #} else if (tmp.gp == "CD") {
+            #    tmp.dat[ , tmp.gp] <- as.factor(cbind(paste(tmp.dat$C,tmp.dat$D,sep="")))
+            #} else if (tmp.gp == "G") {
+            #    #tmp.dat[ , tmp.gp] <- as.factor(tmp.dat$G)
+            #}
             
             ## concatenate terminal results for training data only
             if (n == 1) {
@@ -131,7 +198,7 @@ for (n in 0:1) {
                }
             }
 
-            ## for each of the prior, concatenate non-terminal results
+            ## for each of the priors, concatenate non-terminal results
             for (k in 1:(tmp.sp)) {
                if (tmp.gp == "AF") {
                     tmp.AN <- substr(tmp.dat[,paste("ABCDEFG.",k-1,sep="")],1,1)
@@ -151,7 +218,7 @@ for (n in 0:1) {
                }
            }
            
-        }
+        } ## /// end of group parameter loop
         
         ## update panel with augmented data
         panel.list[[panel_id]]$data <- tmp.dat
