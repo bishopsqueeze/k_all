@@ -97,9 +97,13 @@ for (i in 2:4) {
                             paste("ABCDEFG.","T",sep=""),
                             ## remove terminal single choices (will add back the target later)
                             paste(groups,"T",sep=""),
+<<<<<<< HEAD
                             ## indicators of static input variable changes
                             #colnames(tmp.data)[grep("u$",colnames(tmp.data))],
                             ## remove un-scaled cost variables
+=======
+                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+>>>>>>> FETCH_HEAD
                             colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))],
                             ## remove terminal, grouped variables
                             c("AFT","BET","CDT"),
