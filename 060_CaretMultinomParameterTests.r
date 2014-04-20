@@ -7,6 +7,7 @@
 ## Load libraries
 ##------------------------------------------------------------------
 library(caret)
+library(nnet)
 library(foreach)
 library(doMC)
 
@@ -39,7 +40,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:2) {
+for (i in 2:11) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -69,7 +70,7 @@ for (i in 2:2) {
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".knnCaretFit_LGOCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".multinomCaretFit_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -103,10 +104,13 @@ for (i in 2:2) {
         ##------------------------------------------------------------------
         ## attempt to remove independent groups & irrelevant groups associated with the current group
         ##------------------------------------------------------------------
+        #drop.groups  <- groups[ -which(groups %in% groups[j]) ]
+        #for (k in 1:length(drop.groups)) {
+        #    drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
+        #}
+        
+## modified the above ... see if this causes an error w/the g-only fit
         drop.groups  <- groups[ -which(groups %in% groups[j]) ]
-        for (k in 1:length(drop.groups)) {
-            drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
-        }
         drop.groups  <- c(drop.groups, groups[j])
         
 
@@ -170,38 +174,59 @@ for (i in 2:2) {
         set.seed(4321)
         smp.list    <- createDataPartition(tmpClass, p=0.80, list=TRUE, times=10)
 
+
+##------------------------------------------------------------------
+## some test configuration parameters
+##------------------------------------------------------------------
+if (i < 12) {
+    multinomGrid    <- expand.grid(.decay = 0.01)
+}
+
+##------------------------------------------------------------------
+## set-up the fit parameters using the pre-selected (stratified) samples
+##------------------------------------------------------------------
+num.cv      <- 5
+num.repeat  <- 5
+num.total   <- num.cv * num.repeat
+
+set.seed(123)
+seeds <- vector(mode = "list", length = (num.total + 1))
+for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(multinomGrid))
+seeds[[num.total+1]] <- sample.int(1000, 1)
+
         ##------------------------------------------------------------------
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
+        ## test of repeated CV for G-class
         fitControl <- trainControl(
-                        method="LGOCV",
-                        #returnData=TRUE,
-                        #returnResamp="all",
-                        #savePredictions=TRUE,
-                        #verboseIter=TRUE,
-                        number=10,
-                        index=smp.list)
+        method="repeatedcv",
+        number=num.cv,
+        repeats=num.repeat,
+        seeds=seeds)
+        
+        #fitControl <- trainControl(
+        #                method="LGOCV",
+        #                #returnData=TRUE,
+        #                #returnResamp="all",
+        #                #savePredictions=TRUE,
+        #                #verboseIter=TRUE,
+        #                number=10,
+        #                index=smp.list)
 
-        ##------------------------------------------------------------------
-        ## some test configuration parameters
-        ##------------------------------------------------------------------
-        if (i < 12) {
-            multinomGrid    <- expand.grid(.decay = 0.01)
-        }
     
         ##------------------------------------------------------------------
         ## Notes:
         ## - The CDN variables to the fit caused an error ... prob due to a
         ##   zero observations for rare classes being samples
         ##------------------------------------------------------------------
-        system.time({
+        #system.time({
         ## perform a fit
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
                                 method="multinom",
                                 trControl=fitControl,
                                 tuneGrid=multinomGrid))
-        })
+        #})
 
 
         ##------------------------------------------------------------------
@@ -215,7 +240,7 @@ for (i in 2:2) {
             #tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-#save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
         }
 
     }
