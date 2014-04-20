@@ -62,7 +62,7 @@ for (i in 7:7) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 7:7) {
+    for (j in 1:1) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -89,9 +89,38 @@ for (i in 7:7) {
                             paste("ABCDEFG.",seq(0,i-1,1),sep=""),
                             paste("ABCDEFG.","T",sep=""),
                             paste(groups,"T",sep=""),
-                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
-                            colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))])
+                            #colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+                            colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))],
+                            c("AFT","BET","CDT"),
+                            colnames(tmp.data)[grep("AF[0-9]$", colnames(tmp.data))],
+                            colnames(tmp.data)[grep("CD[0-9]$", colnames(tmp.data))],
+                            colnames(tmp.data)[grep("BE[0-9]$", colnames(tmp.data))]
+                            )
 
+        ## exchange box-cox transformed data for the previous numeric columns ...
+        ## ... but an issue b/c unscaled cost propagated in the split panel step
+        drop.cols <- c(drop.cols, c("age_oldest.s", "age_youngest.s", "rmin.s",
+                                    "age_youngest.bc", "age_oldest.bc", "cost.bc", "car_age.bc", "rmin.bc",
+                                    "cost.bcs"))
+        
+        
+        ## retain only correlated factors for single-name fits
+        if (groups[j] == "A") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "B") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "C") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "D") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "E") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "F") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+        } else if (groups[j] == "G") {
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
+        }
+        
         ##------------------------------------------------------------------
         ## for SP_01 drop "n*" and "d*" variables b/c no accumulated history
         ##------------------------------------------------------------------
@@ -109,9 +138,10 @@ for (i in 7:7) {
         #    drop.groups <- c(drop.groups, colnames(tmp.data)[grep(drop.groups[k], colnames(tmp.data))])
         #}
 
-## modified the above ... see if this causes an error w/the g-only fit
-drop.groups  <- groups[ -which(groups %in% groups[j]) ]
-        
+        ##------------------------------------------------------------------
+        ## modified the above ... see if this causes an error w/the g-only fit
+        ##------------------------------------------------------------------
+        drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         drop.groups  <- c(drop.groups, groups[j])
         
 
@@ -146,7 +176,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 10000
+        max.reg <- 5000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
@@ -173,7 +203,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         if (i < 12) {
             gbmGrid    <- expand.grid(
             .interaction.depth = c(7, 9),
-            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500),
+            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500, 1000),
             .shrinkage = c(0.01, 0.1))
         }
 
@@ -236,7 +266,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
 
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
+    ##save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
         }
     }
 }
