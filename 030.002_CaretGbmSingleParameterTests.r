@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:2) {
+for (i in 2:4) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -55,7 +55,6 @@ for (i in 2:2) {
     tmp.len     <- tmp.object$len
 
     ## define the groups to test
-    #groups <- c("AF","BE","CD","G")
     groups <- c("A","B","C","D","E","F","G")
     
     ##------------------------------------------------------------------
@@ -70,55 +69,80 @@ for (i in 2:2) {
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_REPCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_SingleParam_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
         tmp.lq     <- paste(groups[j],"0",sep="")  ## last-qutoed
 
-        ##------------------------------------------------------------------
+        ##******************************************************************
         ## define columns to drop
-        ##------------------------------------------------------------------
-        drop.cols   <- c(   c("customer_ID", "shopping_pt", "record_type"),
+        ##******************************************************************
+        drop.cols   <- c(   ## remove non-predictors
+                            c("customer_ID", "shopping_pt", "record_type"),
+                            ## remove the current-step choices (contained elsewhere)
                             LETTERS[1:7],
+                            ## remove additional non-predictors
                             c("id_fl", "key", "last_fl", "custday_key.u"),
+                            ## remove un-scaled versions of variables
                             c("car_age", "car_age.bin", "age_oldest", "age_youngest"),
                             c("duration_previous.r", "dcost", "ccost", "dayfrac.diff"),
+                            ## [???] not sure what to do with this
                             c("location.r"),
-                            c("cost.s"), ## b/c contained in cost.s0
+                            ## remove cost.s b/c contained elsewhere
+                            c("cost.s"),
+                            ## remove the intermediate concatenated plans
                             paste("ABCDEFG.",seq(0,i-1,1),sep=""),
+                            ## remove the terminal concatenated plans
                             paste("ABCDEFG.","T",sep=""),
+                            ## remove terminal single choices (will add back the target later)
                             paste(groups,"T",sep=""),
+                            ## indicators of static input variable changes
                             #colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+                            ## remove un-scaled cost variables
                             colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))],
+                            ## remove terminal, grouped variables
                             c("AFT","BET","CDT"),
-                            colnames(tmp.data)[grep("AF[0-9]$", colnames(tmp.data))],
-                            colnames(tmp.data)[grep("CD[0-9]$", colnames(tmp.data))],
-                            colnames(tmp.data)[grep("BE[0-9]$", colnames(tmp.data))]
-                            )
+                            ## remove intermediate, grouped variables
+                            colnames(tmp.data)[grep("AF[0-9]$", colnames(tmp.data))], colnames(tmp.data)[grep("AF10$", colnames(tmp.data))],
+                            colnames(tmp.data)[grep("CD[0-9]$", colnames(tmp.data))], colnames(tmp.data)[grep("CD10$", colnames(tmp.data))],
+                            colnames(tmp.data)[grep("BE[0-9]$", colnames(tmp.data))], colnames(tmp.data)[grep("BE10$", colnames(tmp.data))],
+                            ## remove the day-change indicator (can be toggled at last shopping_pt)
+                            c("day.u"))
 
+        ##------------------------------------------------------------------
         ## exchange box-cox transformed data for the previous numeric columns ...
         ## ... but an issue b/c unscaled cost propagated in the split panel step
+        ##------------------------------------------------------------------
         drop.cols <- c(drop.cols, c("age_oldest.s", "age_youngest.s", "rmin.s",
                                     "age_youngest.bc", "age_oldest.bc", "cost.bc", "car_age.bc", "rmin.bc",
                                     "cost.bcs"))
         
-        
+        ##------------------------------------------------------------------
         ## retain only correlated factors for single-name fits
+        ## [!!!] may want to experiment with these
+        ##------------------------------------------------------------------
         if (groups[j] == "A") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG]10$", colnames(tmp.data))])
         } else if (groups[j] == "B") {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "C") {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "D") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]0-9$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "E") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "F") {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG]10$", colnames(tmp.data))])
         } else if (groups[j] == "G") {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF]10$", colnames(tmp.data))])
         }
         
         ##------------------------------------------------------------------
@@ -139,20 +163,19 @@ for (i in 2:2) {
         #}
 
         ##------------------------------------------------------------------
-        ## modified the above ... see if this causes an error w/the g-only fit
+        ## remove current single parameter
         ##------------------------------------------------------------------
         drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         drop.groups  <- c(drop.groups, groups[j])
         
-
         ##------------------------------------------------------------------
         ## Drop the current group levels
         ##------------------------------------------------------------------
-        # drop.cols   <- c(drop.cols, groups)
+        #drop.cols   <- c(drop.cols, groups)
         drop.cols   <- c(drop.cols, drop.groups)
         
         ##------------------------------------------------------------------
-        ## don't drop the reponse variable
+        ## add back the reponse variable
         ##------------------------------------------------------------------
         drop.cols   <- drop.cols[ -which(drop.cols %in% eval(tmp.y)) ]
 
@@ -162,21 +185,23 @@ for (i in 2:2) {
         tmp.reg   <- droplevels(tmp.data[ , -which(colnames(tmp.data) %in% drop.cols) ])
 
 
+        ##------------------------------------------------------------------
         ## split data into the response (Class) and variables (Descr)
+        ##------------------------------------------------------------------
         tmpClass  <- tmp.reg[ , tmp.y]
         tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
 
-        ##------------------------------------------------------------------
+        ##******************************************************************
         ## Define the samples to be used since there is a danger that
         ## thinly populated classes might cause a sampling failure
-        ##------------------------------------------------------------------
+        ##******************************************************************
 
         ##------------------------------------------------------------------
         ## For the simplicity of doing a sweep of the parameter space, limit
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 5000
+        max.reg <- 10000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
@@ -203,7 +228,7 @@ for (i in 2:2) {
         if (i < 12) {
             gbmGrid    <- expand.grid(
             .interaction.depth = c(7, 9),
-            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500, 1000),
+            .n.trees = c(10, 50, 100, 250, 500, 1000, 1500, 2000),
             .shrinkage = c(0.001, 0.01))
         }
 
@@ -211,9 +236,10 @@ for (i in 2:2) {
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         num.cv      <- 5
-        num.repeat  <- 5
+        num.repeat  <- 3
         num.total   <- num.cv * num.repeat
         
+        ## define the seeds to be used in the fits
         set.seed(123)
         seeds <- vector(mode = "list", length = (num.total + 1))
         for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
@@ -225,16 +251,6 @@ for (i in 2:2) {
                             number=num.cv,
                             repeats=num.repeat,
                             seeds=seeds)
-        
-        #fitControl <- trainControl(
-        #                method="LGOCV",
-        #                p=0.80,
-        #                #returnData=TRUE,
-        #                #returnResamp="all",
-        #                #savePredictions=TRUE,
-        #                #verboseIter=TRUE,
-        #                number=10,
-        #                index=smp.list)
     
         ##------------------------------------------------------------------
         ## Notes:
@@ -258,15 +274,9 @@ for (i in 2:2) {
             cat("Error with fit ...", out.filename, "\n")
         } else {
             
-            ## plot the fit summary
-            #plot.name <- gsub("Rdata","pdf",out.filename)
-            #pdf(file=plot.name)
-            #    plot(tmp.fit)
-            #dev.off()
-
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-##save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
         }
     }
 }
