@@ -74,11 +74,12 @@ all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
     ## Explore zero-variance, filtering, scaling
     ##------------------------------------------------------------------
 
-    ## check for zero variance
-    ##nzv <- nearZeroVar(all.data)  ## !!! none detected !!!
+    ## check for zero variance (!!! none detected !!!)
+    ##nzv <- nearZeroVar(all.data)
 
-    ## numeric variables
-    ##preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "cost")], method=c("BoxCox","center","scale"))
+    ## estimate Box-Cox transformations for numeric variables
+    preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "cost")], method=c("BoxCox"))
+    all.data[,c("car_age.bc", "age_youngest.bc", "age_oldest.bc", "cost.bc")] <- predict(preProc, all.data[,c("car_age", "age_youngest", "age_oldest", "cost")])
 
 ##------------------------------------------------------------------
 ## Assign state factors a numeric code
@@ -188,7 +189,8 @@ all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, 
 all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
 
 ## ratio of current cost to minimum quoted cost (by customer_ID)
-all.copy$rmin   <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, function(x){x/min(x,na.rm=TRUE)})))
+all.copy$rmin    <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, function(x){x/min(x,na.rm=TRUE)})))
+all.copy$rmin.bc <- predict(BoxCoxTrans(all.copy$rmin), all.copy$rmin)      ## Box-Cox transform of skewed ratios
 
 ## [parallel] period-over-period change in each of the selection options
 tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
@@ -202,23 +204,19 @@ tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
 }
 all.copy[, paste("n",LETTERS[1:7],sep="")] <- tmp.res
 
-
-## identify the number of "updates"/"changes" (per customer) in a "static" form entry
-##
-## *** swap these to a binary variable for >1 entry using an ifelse()
-##
-all.copy$day.u               <- as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique)))
-all.copy$group_size.u        <- as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique)))
-all.copy$homeowner.u         <- as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique)))
-all.copy$car_age.u           <- as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique)))
-all.copy$age_oldest.u        <- as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique)))
-all.copy$age_youngest.u      <- as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique)))
-all.copy$married_couple.u    <- as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique)))
-all.copy$car_value.u         <- as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique)))
-all.copy$location.u          <- as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique)))
-all.copy$C_previous.u        <- as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique)))
-all.copy$duration_previous.u <- as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique)))
-all.copy$risk_factor.u       <- as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, numUnique)))
+## identify cases where "updates"/"changes" (per customer) occur
+all.copy$day.u               <- ifelse(as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$group_size.u        <- ifelse(as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$homeowner.u         <- ifelse(as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$car_age.u           <- ifelse(as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$age_oldest.u        <- ifelse(as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$age_youngest.u      <- ifelse(as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$married_couple.u    <- ifelse(as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$car_value.u         <- ifelse(as.vector(unlist(tapply(all.copy$car_value.num, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$location.u          <- ifelse(as.vector(unlist(tapply(all.copy$location, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$C_previous.u        <- ifelse(as.vector(unlist(tapply(all.copy$C_previous, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$duration_previous.u <- ifelse(as.vector(unlist(tapply(all.copy$duration_previous, all.copy$customer_ID, numUnique))) > 1, 1, 0)
+all.copy$risk_factor.u       <- ifelse(as.vector(unlist(tapply(all.copy$risk_factor, all.copy$customer_ID, numUnique))) > 1, 1, 0)
 
 ##------------------------------------------------------------------
 ## Re-code variables with missings
@@ -232,14 +230,18 @@ all.copy$location.r[ which(all.copy$location.r == -9) ]         <- 99999
 all.copy$car_age.s           <- scale(all.copy$car_age)
 all.copy$age_oldest.s        <- scale(all.copy$age_oldest)
 all.copy$age_youngest.s      <- scale(all.copy$age_youngest)
+all.copy$age_oldest.bcs      <- scale(all.copy$age_oldest.bc)       ## scaled box-cox transformed cost
+all.copy$age_youngest.bcs    <- scale(all.copy$age_youngest.bc)     ## scaled box-cox transformed cost
 all.copy$duration_previous.s <- scale(all.copy$duration_previous.r)
 all.copy$dayfrac.cum.s       <- scale(all.copy$dayfrac.cum)
 all.copy$dayfrac.nrm.s       <- scale(all.copy$dayfrac.nrm)
 
-all.copy$cost.s     <- scale(all.copy$cost)     ## scaled cost
-all.copy$dcost.s    <- scale(all.copy$dcost)    ## scaled change in cost from prior choice
-all.copy$ccost.s    <- scale(all.copy$ccost)    ## scaled cumulative change in cost from first choice
-all.copy$rmin.s     <- scale(all.copy$rmin)     ## scaled ratio of cost / min(cost)
+all.copy$cost.s              <- scale(all.copy$cost)     ## scaled cost
+all.copy$cost.bcs            <- scale(all.copy$cost.bc)  ## scaled box-cox transformed cost
+all.copy$dcost.s             <- scale(all.copy$dcost)    ## scaled change in cost from prior choice
+all.copy$ccost.s             <- scale(all.copy$ccost)    ## scaled cumulative change in cost from first choice
+all.copy$rmin.s              <- scale(all.copy$rmin)     ## scaled ratio of cost / min(cost)
+all.copy$rmin.bcs            <- scale(all.copy$rmin.bc)  ## scaled box-cox transformed ratio of cost / min(cost)
 
 ##------------------------------------------------------------------
 ## Perform type conversions for factors

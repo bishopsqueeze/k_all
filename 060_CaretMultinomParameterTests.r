@@ -7,7 +7,7 @@
 ## Load libraries
 ##------------------------------------------------------------------
 library(caret)
-library(nnet)
+#library(nnet)
 library(foreach)
 library(doMC)
 
@@ -225,7 +225,7 @@ seeds[[num.total+1]] <- sample.int(1000, 1)
                                 y=tmpClass,
                                 method="multinom",
                                 trControl=fitControl,
-                                tuneGrid=multinomGrid))
+                                tuneLength=1))
         #})
 
 
