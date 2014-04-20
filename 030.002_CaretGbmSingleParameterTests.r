@@ -89,7 +89,7 @@ for (i in 2:2) {
                             paste("ABCDEFG.",seq(0,i-1,1),sep=""),
                             paste("ABCDEFG.","T",sep=""),
                             paste(groups,"T",sep=""),
-                            #colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
                             colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))],
                             c("AFT","BET","CDT"),
                             colnames(tmp.data)[grep("AF[0-9]$", colnames(tmp.data))],
