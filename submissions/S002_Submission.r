@@ -107,8 +107,12 @@ for (i in 1:7) {
 
 ## collapse individual predicions
 pred.test$ABCDEFG.lq    <- apply(pred.test[, LETTERS[1:7]], 1, paste, collapse="")
+pred.test$A_ONLY.pred   <- apply(pred.test[, c("A.pred", "B", "C", "D", "E", "F", "G")], 1, paste, collapse="")
 pred.test$B_ONLY.pred   <- apply(pred.test[, c("A", "B.pred", "C", "D", "E", "F", "G")], 1, paste, collapse="")
+pred.test$C_ONLY.pred   <- apply(pred.test[, c("A", "B", "C.pred", "D", "E", "F", "G")], 1, paste, collapse="")
+pred.test$D_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D.pred", "E", "F", "G")], 1, paste, collapse="")
 pred.test$E_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
+pred.test$F_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F.pred", "G")], 1, paste, collapse="")
 pred.test$G_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F", "G.pred")], 1, paste, collapse="")
 pred.test$ABCDEFG.pred  <- apply(pred.test[, paste(LETTERS[1:7],".pred",sep="")], 1, paste, collapse="")
 
@@ -135,13 +139,30 @@ lastquoted.sub  <- data.frame(
                     plan = as.character(pred.sub$ABCDEFG.lq) )
 
 ## single predictions
+gbm_aonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$A_ONLY.pred) )
+
+
 gbm_bonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$B_ONLY.pred) )
 
+gbm_conly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$C_ONLY.pred) )
+
+gbm_donly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$D_ONLY.pred) )
+
 gbm_eonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
                     plan = as.character(pred.sub$E_ONLY.pred) )
+
+gbm_fonly.sub   <- data.frame(
+                    customer_ID = as.integer(pred.sub$customer_ID),
+                    plan = as.character(pred.sub$F_ONLY.pred) )
 
 gbm_gonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
@@ -170,14 +191,18 @@ gbm_all.sub     <- data.frame(
 ## Step 5: Write submissions to file
 ##******************************************************************
 #write.csv(lastquoted.sub, file="S002_lastquoted.csv", row.names=FALSE)
+write.csv(gbm_aonly.sub,  file="S002_gbm_aonly.csv", row.names=FALSE)
 #write.csv(gbm_bonly.sub,  file="S002_gbm_bonly.csv", row.names=FALSE)
+write.csv(gbm_conly.sub,  file="S002_gbm_conly.csv", row.names=FALSE)
+write.csv(gbm_donly.sub,  file="S002_gbm_donly.csv", row.names=FALSE)
 #write.csv(gbm_eonly.sub,  file="S002_gbm_eonly.csv", row.names=FALSE)
+write.csv(gbm_fonly.sub,  file="S002_gbm_fonly.csv", row.names=FALSE)
 #write.csv(gbm_gonly.sub,  file="S002_gbm_gonly.csv", row.names=FALSE)
 #write.csv(gbm_all.sub,    file="S002_gbm_all.csv", row.names=FALSE)
 
-write.csv(gbm_cdonly.sub, file="S002_gbm_cdonly.csv", row.names=FALSE)
-write.csv(gbm_afonly.sub, file="S002_gbm_afonly.csv", row.names=FALSE)
-write.csv(gbm_beonly.sub, file="S002_gbm_beonly.csv", row.names=FALSE)
+#write.csv(gbm_cdonly.sub, file="S002_gbm_cdonly.csv", row.names=FALSE)
+#write.csv(gbm_afonly.sub, file="S002_gbm_afonly.csv", row.names=FALSE)
+#write.csv(gbm_beonly.sub, file="S002_gbm_beonly.csv", row.names=FALSE)
 
 
 

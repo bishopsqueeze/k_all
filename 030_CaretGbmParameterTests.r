@@ -146,7 +146,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 20000
+        max.reg <- 10000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
@@ -181,7 +181,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         num.cv      <- 5
-        num.repeat  <- 1
+        num.repeat  <- 5
         num.total   <- num.cv * num.repeat
         
         set.seed(123)
@@ -211,7 +211,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         ## - The CDN variables to the fit caused an error ... prob due to a
         ##   zero observations for rare classes being samples
         ##------------------------------------------------------------------
-        system.time({
+        #system.time({
         ## perform a fit
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
@@ -219,9 +219,7 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
                                 trControl=fitControl,
                                 verbose=FALSE,
                                 tuneGrid=gbmGrid))
-        })
-
-
+        #})
         
         ##------------------------------------------------------------------
         ## handle fit errors
@@ -235,15 +233,11 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
             pdf(plot.name)
                 plot(tmp.fit)
             dev.off()
-            
-            ## compute predicitons on the hold-out data
-            #tmp.pred        <- predict(tmp.fit, newdata=testDescr)
-            #tmp.confusion   <- confusionMatrix(tmp.pred, testClass)
+
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
-            save(tmp.fit, file=out.filename) ## tmp.pred, tmp.confusion
+            save(tmp.fit, seeds, file=out.filename) ## tmp.pred, tmp.confusion
         }
-
     }
 }
 
