@@ -7,7 +7,6 @@
 ## Load libraries
 ##------------------------------------------------------------------
 library(caret)
-#library(class)      ## for gbm()
 library(foreach)
 library(doMC)
 
@@ -47,7 +46,7 @@ test.files     <- dir("./panels")[(grep("Test", dir("./panels")))]
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
 set.seed(123)
-for (i in 2:2) {
+for (i in 11:3) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -76,7 +75,7 @@ for (i in 2:2) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     #for (j in 1:length(groups)) {
-    for (j in 1:1) {
+    for (j in 4:4) {
         
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -84,7 +83,7 @@ for (i in 2:2) {
     
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_LGOCV_V2.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -124,7 +123,6 @@ for (i in 2:2) {
         }
         drop.groups  <- c(drop.groups, groups[j])
         
-
         ##------------------------------------------------------------------
         ## Drop the current group levels
         ##------------------------------------------------------------------
@@ -174,16 +172,7 @@ for (i in 2:2) {
         ##------------------------------------------------------------------
         ## create an index of multiple samples for use in the tuning parameter search
         ##------------------------------------------------------------------
-        smp.list    <- createDataPartition(tmpClass, p=0.80, list=TRUE, times=10)
-
-        ##------------------------------------------------------------------
-        ## set-up the fit parameters using the pre-selected (stratified) samples
-        ##------------------------------------------------------------------
-        fitControl <- trainControl(
-                        method="LGOCV",
-                        number=10,
-                        savePredictions=TRUE,
-                        index=smp.list)
+        #smp.list    <- createDataPartition(tmpClass, p=0.80, list=TRUE, times=10)
 
         ##------------------------------------------------------------------
         ## AF configuration parameters
@@ -332,54 +321,51 @@ for (i in 2:2) {
         ##------------------------------------------------------------------
         ## G configuration parameters
         ##------------------------------------------------------------------
-        ## SP_02_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-        ## SP_03_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
-        ## SP_04_G n.trees = 10, interaction.depth = 4 and shrinkage = 0.1
-        ## SP_05_G n.trees = 10, interaction.depth = 3 and shrinkage = 0.1
-        ## SP_06_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
-        ## SP_07_G n.trees = 40, interaction.depth = 4 and shrinkage = 0.1
-        ## SP_08_G n.trees = 80, interaction.depth = 4 and shrinkage = 0.1
-        ## SP_09_G n.trees = 40, interaction.depth = 2 and shrinkage = 0.1
-        ## SP_10_G n.trees = 20, interaction.depth = 4 and shrinkage = 0.1
-        ## SP_11_G n.trees = 10, interaction.depth = 2 and shrinkage = 0.1
         } else if (j == 4) {
             
-            if (i == 2) {
-                gbm.d <- 4
-                gbm.n <- 40
-            } else if (i == 3) {
-                gbm.d <- 2
-                gbm.n <- 40
-            } else if (i == 4) {
-                gbm.d <- 4
-                gbm.n <- 10
-            } else if (i == 5) {
-                gbm.d <- 3
-                gbm.n <- 10
-            } else if (i == 6) {
-                gbm.d <- 2
-                gbm.n <- 10
-            } else if (i == 7) {
-                gbm.d <- 4
-                gbm.n <- 40
-            } else if (i == 8) {
-                gbm.d <- 4
-                gbm.n <- 80
-            } else if (i == 9) {
-                gbm.d <- 2
-                gbm.n <- 40
-            } else if (i == 10) {
-                gbm.d <- 4
-                gbm.n <- 20
-            } else if (i == 11) {
-                gbm.d <- 2
-                gbm.n <- 10
+            if (i < 12) {
+                gbm.d <- 9
+                gbm.n <- 250
+                gbm.s <- 0.01
             }
-            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.1)
+            gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = gbm.s)
             
         }
-        
-    
+ 
+        ##------------------------------------------------------------------
+        ## set-up the fit parameters using the pre-selected (stratified) samples
+        ##------------------------------------------------------------------
+ 
+        ## for G-only fits
+        if (j == 4) {
+            
+            num.cv      <- 5
+            num.repeat  <- 5
+            num.total   <- num.cv * num.repeat
+     
+            set.seed(123)
+            seeds <- vector(mode = "list", length = (num.total + 1))
+            for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
+            seeds[[num.total+1]] <- sample.int(1000, 1)
+     
+            ## test of repeated CV for G-class
+            fitControl <- trainControl(
+                                method="repeatedcv",
+                                number=num.cv,
+                                repeats=num.repeat,
+                                seeds=seeds)
+            
+        } else {
+     
+            #fitControl <- trainControl(
+            #                method="LGOCV",
+            #                number=10,
+            #                savePredictions=TRUE,
+            #                index=smp.list)
+     
+        }
+ 
+ 
         ##------------------------------------------------------------------
         ## Performing LGOCV to ensure sample completeness
         ##------------------------------------------------------------------

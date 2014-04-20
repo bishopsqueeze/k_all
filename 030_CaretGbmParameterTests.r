@@ -7,7 +7,6 @@
 ## Load libraries
 ##------------------------------------------------------------------
 library(caret)
-#library(class)      ## for gbm()
 library(foreach)
 library(doMC)
 
@@ -40,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:2) {
+for (i in 2:7) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -172,8 +171,8 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         ##------------------------------------------------------------------
         if (i < 12) {
             gbmGrid    <- expand.grid(
-            .interaction.depth = c(5, 7, 9),
-            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500, 750, 1000),
+            .interaction.depth = c(7, 9),
+            .n.trees = c(5, 10, 20, 40, 80, 100, 250, 500),
             .shrinkage = c(0.01, 0.1))
         }
 
@@ -229,10 +228,10 @@ drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         } else {
             
             ## plot the fit summary
-            plot.name <- gsub("Rdata","pdf",out.filename)
-            pdf(plot.name)
-                plot(tmp.fit)
-            dev.off()
+            #plot.name <- gsub("Rdata","pdf",out.filename)
+            #pdf(file=plot.name)
+            #    plot(tmp.fit)
+            #dev.off()
 
             ## save the results
             cat("Saving fit to file ...", out.filename, "\n")
