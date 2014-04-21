@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:4) {
+for (i in 11:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -61,7 +61,7 @@ for (i in 2:4) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 7:7) {
+    for (j in 7:1) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -228,7 +228,7 @@ for (i in 2:4) {
         if (i < 12) {
             gbmGrid    <- expand.grid(
             .interaction.depth = c(7, 9),
-            .n.trees = c(10, 50, 100, 250, 500, 1000, 1500, 2000),
+            .n.trees = c(250, 500, 1000, 1500, 2000),
             .shrinkage = c(0.001, 0.01))
         }
 
@@ -236,7 +236,7 @@ for (i in 2:4) {
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         num.cv      <- 5
-        num.repeat  <- 3
+        num.repeat  <- 5
         num.total   <- num.cv * num.repeat
         
         ## define the seeds to be used in the fits
