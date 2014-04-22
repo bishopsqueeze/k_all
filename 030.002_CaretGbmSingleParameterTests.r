@@ -61,7 +61,7 @@ for (i in 11:2) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 7:1) {
+    for (j in 1:7) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -133,7 +133,7 @@ for (i in 11:2) {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "D") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]0-9$", colnames(tmp.data))])
+            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
         } else if (groups[j] == "E") {
             drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
@@ -228,8 +228,8 @@ for (i in 11:2) {
         if (i < 12) {
             gbmGrid    <- expand.grid(
             .interaction.depth = c(7, 9),
-            .n.trees = c(250, 500, 1000, 1500, 2000),
-            .shrinkage = c(0.001, 0.01))
+            .n.trees = c(25, 50, 100, 150, 200, 250, 300, 350, 400, 500),
+            .shrinkage = c(0.01))
         }
 
         ##------------------------------------------------------------------
