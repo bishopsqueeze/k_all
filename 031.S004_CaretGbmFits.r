@@ -45,7 +45,7 @@ test.files     <- dir("./panels")[(grep("Test", dir("./panels")))]
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:11) {
+for (i in 3:3) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -74,7 +74,7 @@ for (i in 2:11) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     #for (j in 1:length(groups)) {
-    for (j in 1:7) {
+    for (j in 6:7) {
         
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
