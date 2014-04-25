@@ -25,6 +25,11 @@ rm(list=ls())
 setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 
 ##------------------------------------------------------------------
+## Source utility functions
+##------------------------------------------------------------------
+source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctions.r")
+
+##------------------------------------------------------------------
 ## Load the full set of consolidated train/test observations
 ##------------------------------------------------------------------
 load("003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
@@ -80,25 +85,25 @@ for (i in 1:length(fit.files)) {
 ##------------------------------------------------------------------
 ## Split the results into the proper columns
 ##------------------------------------------------------------------
-for (i in 1:7) {
-    
-    if (LETTERS[i] == "A") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,1,1))
-    } else if (LETTERS[i] == "B") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,1,1))
-    } else if (LETTERS[i] == "C") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,1,1))
-    } else if (LETTERS[i] == "D") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,2,2))
-    } else if (LETTERS[i] == "E") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,2,2))
-    } else if (LETTERS[i] == "F") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,2,2))
-    } else if (LETTERS[i] == "G") {
-        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$G.pred,1,1))
-    }
-    
-}
+#for (i in 1:7) {
+#
+#    if (LETTERS[i] == "A") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,1,1))
+#    } else if (LETTERS[i] == "B") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,1,1))
+#    } else if (LETTERS[i] == "C") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,1,1))
+#    } else if (LETTERS[i] == "D") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$CD.pred,2,2))
+#    } else if (LETTERS[i] == "E") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$BE.pred,2,2))
+#    } else if (LETTERS[i] == "F") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$AF.pred,2,2))
+#    } else if (LETTERS[i] == "G") {
+#        pred.test[ , paste(LETTERS[i],".pred",sep="")] <- as.integer(substr(pred.test$G.pred,1,1))
+#    }
+#
+#}
 
 
 ##******************************************************************
@@ -114,12 +119,14 @@ pred.test$D_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D.pred", "E", "F"
 pred.test$E_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
 pred.test$F_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F.pred", "G")], 1, paste, collapse="")
 pred.test$G_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F", "G.pred")], 1, paste, collapse="")
-#pred.test$ABCDEFG.pred  <- apply(pred.test[, paste(LETTERS[1:7],".pred",sep="")], 1, paste, collapse="")
 
-## collapse paired predictions
+## paired predictions
 #pred.test$CD_ONLY.pred   <- apply(pred.test[, c("A", "B", "C.pred", "D.pred", "E", "F", "G")], 1, paste, collapse="")
 #pred.test$AF_ONLY.pred   <- apply(pred.test[, c("A.pred", "B", "C", "D", "E", "F.pred", "G")], 1, paste, collapse="")
 #pred.test$BE_ONLY.pred   <- apply(pred.test[, c("A", "B.pred", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
+
+## combination predcitons
+pred.test$ACDEFG.pred  <- apply(pred.test[, c("A.pred", "B", "C.pred", "D.pred", "E.pred", "F.pred", "G.pred")], 1, paste, collapse="")
 
 ## isolate the last quote for each customer
 sub.idx                 <- tapply(pred.test$shopping_pt, pred.test$customer_ID, function(x){ which(x == max(x)) })
@@ -133,13 +140,16 @@ pred.sub                <- pred.test[ which(pred.test$key %in% sub.key), ]
 ## Step 4: Construct submissions
 ##******************************************************************
 
+## last-quoted benchmark
 lastquoted.sub  <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$ABCDEFG.lq) )
 
-## single predictions
+## single-choice predictions
 gbm_aonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$A_ONLY.pred) )
 
 gbm_bonly.sub   <- data.frame(
@@ -148,6 +158,7 @@ gbm_bonly.sub   <- data.frame(
 
 gbm_conly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$C_ONLY.pred) )
 
 gbm_donly.sub   <- data.frame(
@@ -156,33 +167,54 @@ gbm_donly.sub   <- data.frame(
 
 gbm_eonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$E_ONLY.pred) )
 
 gbm_fonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$F_ONLY.pred) )
 
 gbm_gonly.sub   <- data.frame(
                     customer_ID = as.integer(pred.sub$customer_ID),
+                    shopping_pt = as.integer(pred.sub$shopping_pt),
                     plan = as.character(pred.sub$G_ONLY.pred) )
 
-## paired predictions
-#gbm_cdonly.sub   <- data.frame(
-#                    customer_ID = as.integer(pred.sub$customer_ID),
-#                    plan = as.character(pred.sub$CD_ONLY.pred) )
 
-#gbm_afonly.sub   <- data.frame(
-#                    customer_ID = as.integer(pred.sub$customer_ID),
-#                    plan = as.character(pred.sub$AF_ONLY.pred) )
+## shopping_pt specifc predicitons
+gbm_gonly_sp2.sub   <- lastquoted.sub
+gbm_gonly_sp2.sub   <- convert.magic(gbm_gonly_sp2.sub, c("plan"), "character")
 
-#gbm_beonly.sub   <- data.frame(
-#                    customer_ID = as.integer(pred.sub$customer_ID),
-#                    plan = as.character(pred.sub$BE_ONLY.pred) )
+g.bool              <- (as.character(gbm_gonly.sub$plan) != as.character(lastquoted.sub$plan)) & (gbm_gonly.sub$shopping_pt == 2)
+g.changes           <- gbm_gonly.sub[g.bool, ]
 
-## everything together
-#gbm_all.sub     <- data.frame(
-#                    customer_ID = as.integer(pred.sub$customer_ID),
-#                    plan = as.character(pred.sub$ABCDEFG.pred) )
+gbm_gonly_sp2.sub[ which(gbm_gonly_sp2.sub$customer_ID %in% g.changes$customer_ID), c("plan")] <- as.character(g.changes$plan)
+
+a.bool              <- (as.character(gbm_aonly.sub$plan) != as.character(lastquoted.sub$plan)) & (gbm_aonly.sub$shopping_pt == 2)
+a.changes           <- gbm_aonly.sub[(a.bool & !g.bool), ]
+
+
+
+## shopping_pt specifc predicitons
+gbm_ga.sub   <- lastquoted.sub
+gbm_ga.sub   <- convert.magic(gbm_ga.sub, c("plan"), "character")
+
+g.bool       <- (as.character(gbm_gonly.sub$plan) != as.character(lastquoted.sub$plan))
+g.changes    <- gbm_gonly.sub[g.bool, ]
+gbm_ga.sub[ which(gbm_ga.sub$customer_ID %in% g.changes$customer_ID), c("plan")] <- as.character(g.changes$plan)
+
+
+a.bool      <- (as.character(gbm_aonly.sub$plan) != as.character(lastquoted.sub$plan)) & (gbm_aonly.sub$shopping_pt == 2)
+a.changes   <- gbm_aonly.sub[(a.bool & !g.bool), ]
+gbm_ga.sub[ which(gbm_ga.sub$customer_ID %in% a.changes$customer_ID), c("plan")] <- as.character(a.changes$plan)
+
+
+## Need to continue to test with this file various combinations of fits:
+## C only, C & D combined
+## Other single-parameter differences; which yield the largest/smallest differences with LQ
+## Consider the overlap
+## Do some training sample consistency checks
+
 
 
 ##******************************************************************
@@ -201,6 +233,9 @@ write.csv(gbm_gonly.sub,  file="S004_gbm_gonly.csv", row.names=FALSE)
 #write.csv(gbm_cdonly.sub, file="S004_gbm_cdonly.csv", row.names=FALSE)
 #write.csv(gbm_afonly.sub, file="S004_gbm_afonly.csv", row.names=FALSE)
 #write.csv(gbm_beonly.sub, file="S004_gbm_beonly.csv", row.names=FALSE)
+
+write.csv(gbm_gonly_sp2.sub[,c("customer_ID","plan")], file="S004_gbm_gonly_sp2.csv", row.names=FALSE)
+write.csv(gbm_ga.sub[,c("customer_ID","plan")], file="S004_gbm_ga.csv", row.names=FALSE)
 
 
 ##******************************************************************
@@ -227,9 +262,9 @@ write.csv(gbm_gonly.sub,  file="S004_gbm_gonly.csv", row.names=FALSE)
 ##------------------------------------------------------------------
 
 ## gmb_bonly (of these 138 differences a net of -9 are correct)
-#tmp.sub             <- cbind(lastquoted.sub, gbm_bonly.sub$plan)
-#colnames(tmp.sub)   <- c("customer_ID", "lq", "b_only")
-#diff.b_only         <- subset(tmp.sub, as.character(lq) != as.character(b_only))
+tmp.sub             <- cbind(lastquoted.sub, gbm_aonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "a_only")
+diff.a_only         <- subset(tmp.sub, as.character(lq) != as.character(a_only))
 
 ## gmb_eonly (of these 141 differences a net of -10 are correct)
 #tmp.sub             <- cbind(lastquoted.sub, gbm_eonly.sub$plan)
@@ -237,9 +272,9 @@ write.csv(gbm_gonly.sub,  file="S004_gbm_gonly.csv", row.names=FALSE)
 #diff.e_only         <- subset(tmp.sub, as.character(lq) != as.character(e_only))
 
 ## gmb_gonly (of these 902 differences a net of +38 are correct)
-#tmp.sub             <- cbind(lastquoted.sub, gbm_gonly.sub$plan)
-#colnames(tmp.sub)   <- c("customer_ID", "lq", "g_only")
-#diff.g_only         <- subset(tmp.sub, as.character(lq) != as.character(g_only))
+tmp.sub             <- cbind(lastquoted.sub, gbm_gonly.sub$plan)
+colnames(tmp.sub)   <- c("customer_ID", "lq", "g_only")
+diff.g_only         <- subset(tmp.sub, as.character(lq) != as.character(g_only))
 
 
 
