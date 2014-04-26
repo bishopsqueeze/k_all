@@ -1,6 +1,14 @@
 ##------------------------------------------------------------------
 ## The purpose of this script is to:
 ##	1.
+## What you'll want to do here is use the hold-out data to compute
+## predictions for each of the choices in each of the panels.
+## Then you'll want to use that data to create all possible
+## permutations of choice/submission combo.  Given that the data were
+## not trained on these data, it should be a fair reflection of the
+## predictive accuracy of the model ... and you can shop amongst the
+## permuatations to identify the optimal approach ... same can be
+## done using the training data ... but a bias will be present
 ##------------------------------------------------------------------
 
 ##------------------------------------------------------------------
@@ -30,7 +38,7 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_S004")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_S005")
 
 ##------------------------------------------------------------------
 ## Placeholder lists
@@ -38,14 +46,55 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_S004")
 xcheck.list <- list()
 xcheck.out  <- list()
 
-##------------------------------------------------------------------
-## Set-up a sink
-##------------------------------------------------------------------
-writeLines(c(""), "construct_panel_logfile.txt")
-sink("construct_panel_logfile.txt", append=TRUE)
 
 ##******************************************************************
-## Step 1: Load fit data/results for each panel and each choice prediction
+## Step 1: Confirm that there is consistency in the data isolated
+##         for hold-out testing (there should be b/c the seed was
+##         set prior to sampling ... but confirm that's the case)
+##******************************************************************
+hold.xcheck <- list()
+hold.index  <- list()
+
+## loop over all panels
+for (i in 2:11) {
+    
+    cat("Iteration ",i, " ... of 11 \n")
+    
+    ## define the panel
+    tmp.sp <- paste("SP_",ifelse(i < 10, paste("0",i,sep=""),i),sep="")
+
+    ## placeholder for holdout indices
+    tmp.hold    <- data.frame()
+
+    ## loop over all choices and append the prediciton to the raw.panel
+    for (j in 1:7) {
+        
+        ## define the choice
+        tmp.ch <- LETTERS[j]
+        
+        ## load the fit data -- will load "tmp.fit"
+        tmp.loadfile <- paste(tmp.sp,".Group_",tmp.ch,".gbmCaretFit_AllSample_REPCV.Rdata",sep="")
+        load(tmp.loadfile)
+        
+        ## identify the rows used in the holdout testing
+        tmp.holdIndex   <- as.numeric(rownames(holdDescr))
+        
+        if (j == 1) {
+            tmp.hold    <- tmp.holdIndex
+        } else {
+            tmp.hold    <- cbind(tmp.hold, tmp.holdIndex)
+        }
+    }
+
+    ## confirm uniformity of the indices and retain the indices
+    hold.xcheck[[tmp.sp]]   <- sum( tmp.hold - apply(tmp.hold, 1, mean) )
+    hold.index[[tmp.sp]]    <- tmp.holdIndex
+}
+
+
+##******************************************************************
+## Step 2: Load each of the panels, and isolate the rows that are
+##         associated with the hold-out data.  Then append
 ##******************************************************************
 
 ## loop over all panels
@@ -60,8 +109,15 @@ for (i in 2:11) {
     tmp.panel <- paste("/Users/alexstephens/Development/kaggle/allstate/data/panels/004_allstatePanelData_Train.",tmp.sp,".Rdata",sep="")
     load(tmp.panel)
 
-    ## define the raw panel
-    tmp.raw <- tmp.object$data[ , c("customer_ID", "shopping_pt", "record_type", paste(LETTERS[1:7],"T",sep=""), paste(LETTERS[1:7],"0",sep="")) ]
+    ## isolate the holdout index
+    tmp.holdIndex   <- hold.index[[tmp.sp]]
+    tmp.holdOrder   <- order(tmp.holdIndex)
+    
+    ## define the panel data index
+    panel.idx   <- which(rownames(tmp.object$data) %in% tmp.holdIndex)
+    
+    ## define the raw panel associated with the holdout sample
+    tmp.raw <- tmp.object$data[panel.idx, c("customer_ID", "shopping_pt", "record_type", paste(LETTERS[1:7],"T",sep=""), paste(LETTERS[1:7],"0",sep="")) ]
     
     ## loop over all choices and append the prediciton to the raw.panel
     for (j in 1:7) {
@@ -73,13 +129,16 @@ for (i in 2:11) {
         tmp.loadfile <- paste(tmp.sp,".Group_",tmp.ch,".gbmCaretFit_AllSample_REPCV.Rdata",sep="")
         load(tmp.loadfile)
     
+        ## sort the holdout data
+        
         ## compute the prediction
-        tmp.pred <- predict(tmp.fit, type="raw")
+        tmp.pred <- predict(tmp.fit, newdata=holdDescr[tmp.holdOrder,], type="raw")
     
         ## combine the fit data and the raw data
         tmp.col  <- paste(tmp.ch,"P",sep="")
+        #tmp.raw  <- data.frame(tmp.raw, tmp.col=tmp.pred, tmp.class=holdClass[tmp.holdOrder])
         tmp.raw  <- data.frame(tmp.raw, tmp.col=tmp.pred)
-        colnames(tmp.raw)[which(colnames(tmp.raw) == "tmp.col")] <- tmp.col
+        colnames(tmp.raw)[which(colnames(tmp.raw) %in% c("tmp.col"))] <- c(tmp.col)
    
      }
     
@@ -87,20 +146,19 @@ for (i in 2:11) {
     xcheck.list[[tmp.sp]] <- tmp.raw
 }
 
-## !!! Note:  If you re-run the fit using a hold-out sample, make sure the saved
-##            output contains the raw data ... so you can easily match the fit
-##            to a customer_ID (if needed)
 
 ##******************************************************************
-## Step 2: Expand all possible permutations of choices
+## Step 3: Expand all possible permutations of choices
 ##******************************************************************
 ch.combos <- expand.grid(a=c(0,1), b=c(0,1), c=c(0,1), d=c(0,1), e=c(0,1), f=c(0,1), g=c(0,1))
 ch.combos <- ch.combos[which(apply(ch.combos, 1, sum) >= 1), ]
 
 
 ##******************************************************************
-## Step 3:  Loop over all shopping_pts and choice combos and create
-## a predicted plan ... append to the original data so we can do comparisons
+## Step 4:  Loop over all shopping_pts and choice combos and create
+##          the entire universe of predicted plans.  Then append
+##          those plans to the original data so we can shop for the
+##          best possible combination of predictors
 ##******************************************************************
 for (i in 2:11) {
     
@@ -165,11 +223,15 @@ for (i in 2:11) {
 
 
 ##******************************************************************
-## Step 4: For each SP, compute the average agreement
+## Step 5: For each shopping_pt ... compute the average accuracy
 ##******************************************************************
 
-## test on the final (and full) set of observations
-fin.res <- data.frame()
+##------------------------------------------------------------------
+## Compute accuracies using the full hold-out sample
+##------------------------------------------------------------------
+
+## aggregate results by plan permutation and shopping_pt
+res.holdout <- data.frame()
 for (i in 2:11) {
 
     ## isolate the data
@@ -180,54 +242,22 @@ for (i in 2:11) {
     for (j in 1:ncol(tmp.out)) {
         tmp.res[j] <- mean(as.character(tmp.out[,1]) == as.character(tmp.out[,j]))
     }
-    fin.res     <- rbind(fin.res, tmp.res)
+    res.holdout     <- rbind(res.holdout, tmp.res)
+    
 }
-colnames(fin.res) <- colnames(tmp.out)
-rownames(fin.res) <- names(xcheck.out)[order(names(xcheck.out))]
-fin.res           <- t(fin.res)
-fin.res           <- fin.res[2:nrow(fin.res),]
+colnames(res.holdout) <- colnames(tmp.out)
+rownames(res.holdout) <- names(xcheck.out)[order(names(xcheck.out))]
+res.holdout           <- t(res.holdout)
+res.holdout           <- res.holdout[2:nrow(res.holdout),]
 
+## identify the optimal approach for each shopping_pt
+optimal.plans <- apply(res.holdout, 2, function(x){ which(x == max(x))})
 
-
-## test using the last observed point for each
-sub.res <- matrix("character", nrow=sum(do.call(rbind, lapply(xcheck.out, dim))[,1]), ncol=ncol(xcheck.out[[1]]))
-for (i in 2:11) {
-    
-    ## isolate the data
-    tmp.sp      <- paste("SP_",ifelse(i < 10, paste("0",i,sep=""),i),sep="")
-    tmp.out     <- xcheck.out[[tmp.sp]][, 1:ncol(xcheck.out[[tmp.sp]])]
-    
-    if (i == 2) {
-        tmp.lo  <- 1
-        tmp.hi  <- nrow(tmp.out)
-    } else {
-        tmp.lo  <- tmp.hi + 1
-        tmp.hi  <- tmp.hi + nrow(tmp.out)
-    }
-    
-    sub.res[tmp.lo:tmp.hi, ]    <- sapply(tmp.out, function(x) { (as.character(x)) } )
-}
-sub.res             <- data.frame(sub.res)
-colnames(sub.res)   <- colnames(xcheck.out[[1]])
-
-#sub.res             <- sub.res[ order(sub.res$customer_ID, sub.res$shopping_pt), ]
-#rownames(sub.res)   <- 1:nrow(sub.res)
-
-#a <- tapply(sub.res$shopping_pt, sub.res$customer_ID, function(x){ rownames(x)[which(x == max(x))]})
-
-
-
-### !!!!! YOU HAVE WORK TO DO CLEANING THIS MESS UP ###
 
 
 ##------------------------------------------------------------------
 ## Save results
 ##------------------------------------------------------------------
-save(xcheck.list, ch.combos, xcheck.out, fin.res, sub.res,
-            file="/Users/alexstephens/Development/kaggle/allstate/data/S004_CaretGbmXcheck_v3.Rdata")
+save(xcheck.list, ch.combos, xcheck.out, res.holdout, optimal.plans,
+            file="/Users/alexstephens/Development/kaggle/allstate/data/S004_CaretGbmXcheck_v4.Rdata")
 
-
-##------------------------------------------------------------------
-## Close sink
-##------------------------------------------------------------------
-sink()
