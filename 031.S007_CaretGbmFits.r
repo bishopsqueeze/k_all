@@ -135,28 +135,28 @@ for (i in 2:11) {
         ## retain only correlated factors for single-name fits
         ## [!!!] may want to experiment with these
         ##------------------------------------------------------------------
-        if (groups[j] == "A") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "B") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "C") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "D") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "E") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "F") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "G") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF]10$", colnames(tmp.data))])
-        }
+        #if (groups[j] == "A") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "B") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "C") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "D") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "E") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "F") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "G") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF]10$", colnames(tmp.data))])
+        #}
         
         ##------------------------------------------------------------------
         ## for SP_01 drop "n*" and "d*" variables b/c no accumulated history
@@ -204,9 +204,11 @@ for (i in 2:11) {
         testDescr <- tmp.test
         
         ## define a hold-out sample to use
-        set.seed(789)
         numObs      <- nrow(tmpDescr)
-        holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr))) ## 10% hold-out
+        
+        set.seed(88888888)
+        numObs      <- nrow(tmpDescr)
+        holdSmp     <- sample.int(nrow(tmpDescr), round(0.20*nrow(tmpDescr))) ## 10% hold-out
         
         holdClass   <- tmpClass[holdSmp]
         holdDescr   <- tmpDescr[holdSmp, ]
@@ -474,8 +476,37 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         } else if (groups[j] == "G") {
             
-            gbm.d <- 9
-            gbm.n <- 250
+            if (i == 2) {
+                gbm.d <- 7
+                gbm.n <- 150
+            } else if (i == 3) {
+                gbm.d <- 9
+                gbm.n <- 400
+            } else if (i == 4) {
+                gbm.d <- 7
+                gbm.n <- 25
+            } else if (i == 5) {
+                gbm.d <- 7
+                gbm.n <- 500
+            } else if (i == 6) {
+                gbm.d <- 9
+                gbm.n <- 200
+            } else if (i == 7) {
+                gbm.d <- 7
+                gbm.n <- 500
+            } else if (i == 8) {
+                gbm.d <- 7
+                gbm.n <- 200
+            } else if (i == 9) {
+                gbm.d <- 9
+                gbm.n <- 150
+            } else if (i == 10) {
+                gbm.d <- 7
+                gbm.n <- 100
+            } else if (i == 11) {
+                gbm.d <- 9
+                gbm.n <- 400
+            }
             gbmGrid    <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.01)
             
         }
@@ -486,21 +517,22 @@ for (i in 2:11) {
  
         if (TRUE) {
             
-            num.cv      <- 5
-            num.repeat  <- 3
-            num.total   <- num.cv * num.repeat
+            #num.cv      <- 5
+            #num.repeat  <- 3
+            #num.total   <- num.cv * num.repeat
      
-            set.seed(123)
-            seeds <- vector(mode = "list", length = (num.total + 1))
-            for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
-            seeds[[num.total+1]] <- sample.int(1000, 1)
+            #set.seed(123)
+            #seeds <- vector(mode = "list", length = (num.total + 1))
+            #for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
+            #seeds[[num.total+1]] <- sample.int(1000, 1)
      
             ## test of repeated CV for G-class
-            fitControl <- trainControl(
-                                method="repeatedcv",
-                                number=num.cv,
-                                repeats=num.repeat,
-                                seeds=seeds)
+            #fitControl <- trainControl(
+            #                    method="repeatedcv",
+            #                    number=num.cv,
+            #                    repeats=num.repeat,
+            #                    seeds=seeds)
+            fitControl <- trainControl(method="none")
             
         }
         
