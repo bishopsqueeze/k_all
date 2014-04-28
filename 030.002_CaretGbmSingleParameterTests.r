@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:2) {
+for (i in 2:11) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -61,7 +61,7 @@ for (i in 11:2) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 1:7) {
+    for (j in 7:7) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -98,9 +98,8 @@ for (i in 11:2) {
                             ## remove terminal single choices (will add back the target later)
                             paste(groups,"T",sep=""),
                             ## indicators of static input variable changes
-                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
+                            #colnames(tmp.data)[grep("u$",colnames(tmp.data))],
                             ## remove un-scaled cost variables
-                            colnames(tmp.data)[grep("u$",colnames(tmp.data))],
                             colnames(tmp.data)[grep("cost[0-9]$", colnames(tmp.data))],
                             ## remove terminal, grouped variables
                             c("AFT","BET","CDT"),
@@ -123,28 +122,28 @@ for (i in 11:2) {
         ## retain only correlated factors for single-name fits
         ## [!!!] may want to experiment with these
         ##------------------------------------------------------------------
-        if (groups[j] == "A") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "B") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "C") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "D") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "E") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "F") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG]10$", colnames(tmp.data))])
-        } else if (groups[j] == "G") {
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
-            drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF]10$", colnames(tmp.data))])
-        }
+        #if (groups[j] == "A") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "B") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ACDFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "C") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "D") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABEFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "E") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[CDFG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "F") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[BCDEG]10$", colnames(tmp.data))])
+        #} else if (groups[j] == "G") {
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF][0-9]$", colnames(tmp.data))])
+        #    drop.cols <- c(drop.cols, colnames(tmp.data)[grep("^[ABCDEF]10$", colnames(tmp.data))])
+        #}
         
         ##------------------------------------------------------------------
         ## for SP_01 drop "n*" and "d*" variables b/c no accumulated history
@@ -227,7 +226,9 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         if (i < 12) {
             gbmGrid    <- expand.grid(
-            .interaction.depth = c(7, 9),
+            #.interaction.depth = c(7, 9),
+            .interaction.depth = c(9),
+            #.n.trees = c(25, 50, 100, 150, 200, 250, 300, 350, 400, 500),
             .n.trees = c(25, 50, 100, 150, 200, 250, 300, 350, 400, 500),
             .shrinkage = c(0.01))
         }

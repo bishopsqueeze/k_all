@@ -259,5 +259,5 @@ optimal.plans <- apply(res.holdout, 2, function(x){ which(x == max(x))})
 ## Save results
 ##------------------------------------------------------------------
 save(xcheck.list, ch.combos, xcheck.out, res.holdout, optimal.plans,
-            file="/Users/alexstephens/Development/kaggle/allstate/data/S004_CaretGbmXcheck_v4.Rdata")
+            file="/Users/alexstephens/Development/kaggle/allstate/data/S006_CaretGbmXcheck.Rdata")
 
