@@ -52,6 +52,7 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
     choice.idx     <- which(colnames(smp) == "ABCDEFG.T")
     cost.idx       <- which(colnames(smp) == "cost.s0")
+    rest.idx       <- which(colnames(smp) == "car_age.bcs")  ## <X> first variable past the choices
 
     ##------------------------------------------------------------------
     ## Loop over the time/choice combinations and load a separate panel
@@ -65,8 +66,8 @@ for (n in 0:1) {
         ## load non-purchase points
         row.idx     <- ( (smp$shopping_pt %in% tmp.time) & (smp$record_type != 1) )
         
-        ## add the new cost data (i.e., all prior decision info)
-        tmp.dat     <- smp[row.idx, c( 1:(cost.idx-1), (cost.idx):(cost.idx+i-1), (choice.idx):(choice.idx+i) )]
+        ## add the new cost data (i.e., all prior decision info) ... <X> and then the remaining exploded variables
+        tmp.dat     <- smp[row.idx, c( 1:(cost.idx-1), (cost.idx):(cost.idx+i-1), (choice.idx):(choice.idx+i), (rest.idx):ncol(smp) )]
      
         ## define the panel ID
         panel_id <- paste("SP_",ifelse(tmp.time < 10, paste("0",tmp.time,sep=""),tmp.time),sep="")
