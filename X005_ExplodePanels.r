@@ -1,12 +1,6 @@
 ##------------------------------------------------------------------
 ## The purpose of this script is to:
-##	1. Create the raw materials for a panel dataset to be used in a
-##     regression model for the insurance purchase targets
-##  2. This script will create a separate panel for each combination
-##     of shopping_pt (1, 2, 3, ... , N) and choice (A, B, ... , G).
-##  3. Terminal (purchase) rows are not included in the panel
-##  4. What we end-up with is the entire set of observations from
-##     a particular shopping_pt.
+##	1.
 ##------------------------------------------------------------------
 
 ##------------------------------------------------------------------
@@ -14,26 +8,36 @@
 ##------------------------------------------------------------------
 rm(list=ls())
 
-##------------------------------------------------------------------
-## <function> :: expandFactors
-##------------------------------------------------------------------
-expandFactors   <- function(x, v="v") {
-    
-    n       <- nlevels(x)
-    lvl     <- levels(x)
-    mat     <- matrix(, nrow=length(x), ncol=n)
-    tmp.v   <- c()
-    
-    for (i in 1:n) {
-        tmp.lvl <- lvl[i]
-        tmp.v   <- c(tmp.v, paste(v,".",tmp.lvl,sep=""))
-        mat[,i] <- as.integer((x == tmp.lvl))
-    }
-    colnames(mat) <- tmp.v
-    
-return(mat)
-}
 
+###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+### The goal here should be to
+### [1] explode the choice parameters
+### [2] compute interactions between choices ?
+### [3] use caret to identify near-zero variables
+### [4] use caret to identify linear combinations of variables
+### [5] ensure that the training and test data have identical set
+###     of variables ... dropping those that are mismatched
+### [6] ensure that everything in the dataset can be expressed as
+###     a numeric/integer variables
+### [7] confirm that the format is generally consistent with what
+###     is described in the predictive analytics paper
+###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+### ??? maybe load these together to get a sense for what truly
+###     is a near-zero variable
+
+### STEP 0 -- remove superfluous variables (now that we have panels ... e.g., ABCDEFG)
+### STEP 1 -- remove near-zero variables (to reduce dimensions)
+### STEP 2 --
+##------------------------------------------------------------------
+## Load data (each should contain an object called "panel.list"
+##------------------------------------------------------------------
+if (n == 0) {
+    load("X004_allstatePanelData_Test.Rdata")
+} else {
+    load("X004_allstatePanelData_Train.Rdata")
+}
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -46,14 +50,7 @@ setwd("/Users/alexstephens/Development/kaggle/allstate/data")
 #for (n in 0:1) {
 for (n in 1:1) {
     
-    ##------------------------------------------------------------------
-    ## Load data (each should contain an object called "panel.list"
-    ##------------------------------------------------------------------
-    if (n == 0) {
-        load("X004_allstatePanelData_Test.Rdata")
-    } else {
-        load("X004_allstatePanelData_Train.Rdata")
-    }
+
     
     ## loop over all of the shopping point panels (SP_02 ... SP_11)
     ##for (i in 2:11) {
@@ -64,7 +61,7 @@ for (n in 1:1) {
         tmp.sp      <- panel.list[[i]]$sp
         
         ## expand factors into a set of binary variables
-        cols        <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
+        cols        <- c(grep("^[A-G][0-9]$", colnames(tmp.data)), grep("^[A-G]10$", colnames(tmp.data)), grep("^[A-G]11$", colnames(tmp.data)))
         
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=tmp.data[, eval(cols[j])], v=eval(cols[j]))
