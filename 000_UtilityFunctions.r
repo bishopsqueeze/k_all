@@ -182,7 +182,28 @@ varLag <- function(myPanel, myCost, myPurch, myHistSkel, myCostSkel, myType=NULL
 }
 
 
-
+##------------------------------------------------------------------
+## <function> :: expandFactors
+##------------------------------------------------------------------
+## Takes a factor and explodes it into a set of binary indicator
+## variables
+##------------------------------------------------------------------
+expandFactors   <- function(x, v="v") {
+    
+    n       <- nlevels(x)
+    lvl     <- levels(x)
+    mat     <- matrix(, nrow=length(x), ncol=n)
+    tmp.v   <- c()
+    
+    for (i in 1:n) {
+        tmp.lvl <- lvl[i]
+        tmp.v   <- c(tmp.v, paste(v,".",tmp.lvl,sep=""))
+        mat[,i] <- as.integer((x == tmp.lvl))
+    }
+    colnames(mat) <- tmp.v
+    
+    return(mat)
+}
 
 
 

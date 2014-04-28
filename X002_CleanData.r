@@ -222,10 +222,10 @@ all.copy$risk_factor.u       <- as.integer(ifelse(as.vector(unlist(tapply(all.co
 ##------------------------------------------------------------------
 ## Re-code variables with missings
 ##------------------------------------------------------------------
-all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]         <- 99
-all.copy$C_previous.r[ which(all.copy$risk_factor.r == -9) ]          <- 99
-all.copy$duration_previous.r[ which(all.copy$risk_factor.r == -9) ]   <- 99
-all.copy$location.r[ which(all.copy$location.r == -9) ]               <- 99999
+all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]               <- 99
+all.copy$C_previous.r[ which(all.copy$C_previous.r == -9) ]                 <- 99
+all.copy$duration_previous.r[ which(all.copy$duration_previous.r == -9) ]   <- 99
+all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 99999
 
 ##------------------------------------------------------------------
 ## <X> Normalize variables at a later stage (except for cost)

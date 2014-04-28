@@ -125,23 +125,100 @@ for (n in 0:1) {
     df.hist$key <- as.factor(rownames(df.hist))
     
     ##------------------------------------------------------------------
-    ## Clean residual blanks/NAs (doesn't really matter for later panels)
-    ##------------------------------------------------------------------
-    
-    ##------------------------------------------------------------------
-    ## write separate training and test panels
+    ## <X> write separate training and test panels
     ##------------------------------------------------------------------
     if (n == 1) {
-        #all.train   <- cbind(smp, new.cost, new.hist)
+
         all.train   <- join(smp, join(df.cost, df.hist, by="key"), by="key")
         hist.train  <- df.cost
         cost.train  <- df.cost
+        
+        ## scale numeric variables
+        all.train$car_age.bcs           <- scale(all.train$car_age.bc)
+        all.train$age_youngest.bcs      <- scale(all.train$age_youngest.bc)
+        all.train$age_oldest.bcs        <- scale(all.train$age_oldest.bc)
+        all.train$duration_previous.rs  <- scale(all.train$duration_previous.r)
+        all.train$dayfrac.nrms          <- scale(all.train$dayfrac.nrm)
+        all.train$dayfrac.diffs         <- scale(all.train$dayfrac.diff)
+        all.train$dayfrac.cums          <- scale(all.train$dayfrac.cum)
+        all.train$dcost.s               <- scale(all.train$dcost)
+        all.train$ccost.s               <- scale(all.train$ccost)
+        all.train$rmin.bcs              <- scale(all.train$rmin.bc)
+        all.train$rmax.bcs              <- scale(all.train$rmax.bc)
+        
+        ## drop the prior values
+        all.train$car_age.bc            <- NULL
+        all.train$age_youngest.bc       <- NULL
+        all.train$age_oldest.bc         <- NULL
+        all.train$duration_previous.r   <- NULL
+        all.train$dayfrac.nrm           <- NULL
+        all.train$dayfrac.diff          <- NULL
+        all.train$dayfrac.cum           <- NULL
+        all.train$dcost                 <- NULL
+        all.train$ccost                 <- NULL
+        all.train$rmin.bc               <- NULL
+        all.train$rmax.bc               <- NULL
+        
+        ## explode the non-choice factor variables
+        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
+        for (j in 1:length(cols)) {
+            tmp.mat <- expandFactors(x=all.train[, eval(cols[j])], v=eval(cols[j]))
+            if (j == 1) {
+                tmp.exploded <- tmp.mat
+            } else {
+                tmp.exploded <- cbind(tmp.exploded, tmp.mat)
+            }
+        }
+        all.train   <- cbind(all.train, tmp.exploded)
+        all.train   <- all.train[, -(which(colnames(all.train) %in% cols))]
+        
         save(all.copy, all.train, hist.train, cost.train, file="X003_allstateRawData_Train.Rdata")
+        
     } else {
-        #all.test    <- cbind(smp, new.cost, new.hist)
+        
         all.test    <- join(smp, join(df.cost, df.hist, by="key"), by="key")
         hist.test   <- df.hist
         cost.test   <- df.cost
+        
+        ## scale numeric variables
+        all.test$car_age.bcs           <- scale(all.test$car_age.bc)
+        all.test$age_youngest.bcs      <- scale(all.test$age_youngest.bc)
+        all.test$age_oldest.bcs        <- scale(all.test$age_oldest.bc)
+        all.test$duration_previous.rs  <- scale(all.test$duration_previous.r)
+        all.test$dayfrac.nrms          <- scale(all.test$dayfrac.nrm)
+        all.test$dayfrac.diffs         <- scale(all.test$dayfrac.diff)
+        all.test$dayfrac.cums          <- scale(all.test$dayfrac.cum)
+        all.test$dcost.s               <- scale(all.test$dcost)
+        all.test$ccost.s               <- scale(all.test$ccost)
+        all.test$rmin.bcs              <- scale(all.test$rmin.bc)
+        all.test$rmax.bcs              <- scale(all.test$rmax.bc)
+        
+        ## drop the prior values
+        all.test$car_age.bc            <- NULL
+        all.test$age_youngest.bc       <- NULL
+        all.test$age_oldest.bc         <- NULL
+        all.test$duration_previous.r   <- NULL
+        all.test$dayfrac.nrm           <- NULL
+        all.test$dayfrac.diff          <- NULL
+        all.test$dayfrac.cum           <- NULL
+        all.test$dcost                 <- NULL
+        all.test$ccost                 <- NULL
+        all.test$rmin.bc               <- NULL
+        all.test$rmax.bc               <- NULL
+
+        ## explode the non-choice factor variables
+        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
+        for (j in 1:length(cols)) {
+            tmp.mat <- expandFactors(x=all.test[, eval(cols[j])], v=eval(cols[j]))
+            if (j == 1) {
+                tmp.exploded <- tmp.mat
+            } else {
+                tmp.exploded <- cbind(tmp.exploded, tmp.mat)
+            }
+        }
+        all.test   <- cbind(all.test, tmp.exploded)
+        all.test   <- all.test[, -(which(colnames(all.test) %in% cols))]
+
         save(all.copy, all.test, hist.test, cost.test, file="X003_allstateRawData_Test.Rdata")
     }
 
