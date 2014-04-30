@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 8:8) {
+for (i in 2:11) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -61,7 +61,7 @@ for (i in 8:8) {
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     ##for (j in 1:length(groups)) {
-    for (j in 7:7) {
+    for (j in 7:1) {
     
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -207,7 +207,8 @@ for (i in 8:8) {
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 10000
+        ## adjust to try and speed this shit up
+        max.reg <- 5000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
@@ -233,7 +234,7 @@ for (i in 8:8) {
         ##------------------------------------------------------------------
         if (i < 12) {
             svmGrid    <- expand.grid(
-                            .sigma = c(0.01),
+                            .sigma = c(0.0001, 0.001),
                             .C = c(0.25, 0.5, 1, 2, 4, 8, 16))
         }
 
@@ -241,13 +242,13 @@ for (i in 8:8) {
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         num.cv      <- 5
-        num.repeat  <- 1
+        num.repeat  <- 5
         num.total   <- num.cv * num.repeat
         
         ## define the seeds to be used in the fits
         set.seed(123)
         seeds <- vector(mode = "list", length = (num.total + 1))
-        for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
+        for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(svmGrid))
         seeds[[num.total+1]] <- sample.int(1000, 1)
         
         ## test of repeated CV for G-class
@@ -255,6 +256,7 @@ for (i in 8:8) {
                             method="repeatedcv",
                             number=num.cv,
                             repeats=num.repeat,
+                            verboseIter=TRUE,
                             seeds=seeds)
     
         ##------------------------------------------------------------------
@@ -269,7 +271,7 @@ for (i in 8:8) {
                                 method="svmRadial",
                                 trControl=fitControl,
                                 verbose=FALSE,
-                                tuneGrid=gbmGrid))
+                                tuneGrid=svmGrid))
         #})
         
         ##------------------------------------------------------------------
