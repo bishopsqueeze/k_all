@@ -52,7 +52,7 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
     choice.idx     <- which(colnames(smp) == "ABCDEFG.T")
     cost.idx       <- which(colnames(smp) == "cost.s0")
-    rest.idx       <- which(colnames(smp) == "car_age.bcs")  ## <X> first variable past the choices
+    rest.idx       <- which(colnames(smp) == "day.0")  ## <X> first variable past the choices
 
     ##------------------------------------------------------------------
     ## Loop over the time/choice combinations and load a separate panel

@@ -94,16 +94,16 @@ for (i in 2:11) {
     all.test    <- all.test[ , -grep("^[A-G]$", colnames(all.test)) ]
     
     ## scale the cost difference variables
-    cols    <- colnames(all.test)[grep("^d[A-G]",colnames(all.test))]
-    for (j in 1:length(cols)) {
-        all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
-    }
+    #cols    <- colnames(all.test)[grep("^d[A-G]",colnames(all.test))]
+    #for (j in 1:length(cols)) {
+    #    all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
+    #}
 
     ## scale the cost difference variables
-    cols    <- colnames(all.test)[grep("^n[A-G]",colnames(all.test))]
-    for (j in 1:length(cols)) {
-        all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
-    }
+    #cols    <- colnames(all.test)[grep("^n[A-G]",colnames(all.test))]
+    #for (j in 1:length(cols)) {
+    #    all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
+    #}
     
     ## save the results
     panel.test[[test.sp]]$data  <- all.test
@@ -142,16 +142,16 @@ for (i in 2:11) {
 
 
     ## scale the cost difference variables
-    cols    <- colnames(all.train)[grep("^d[A-G]",colnames(all.train))]
-    for (j in 1:length(cols)) {
-        all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
-    }
+    #cols    <- colnames(all.train)[grep("^d[A-G]",colnames(all.train))]
+    #for (j in 1:length(cols)) {
+    #    all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
+    #}
 
     ## scale the cost difference variables
-    cols    <- colnames(all.train)[grep("^n[A-G]",colnames(all.train))]
-    for (j in 1:length(cols)) {
-        all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
-    }
+    #cols    <- colnames(all.train)[grep("^n[A-G]",colnames(all.train))]
+    #for (j in 1:length(cols)) {
+    #    all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
+    #}
     
     ## save the results
     panel.train[[train.sp]]$data  <- all.train

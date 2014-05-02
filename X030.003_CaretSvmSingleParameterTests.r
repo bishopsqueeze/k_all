@@ -235,14 +235,14 @@ for (i in 2:11) {
         if (i < 12) {
             svmGrid    <- expand.grid(
                             .sigma = c(0.0001, 0.001),
-                            .C = c(0.25, 0.5, 1, 2, 4, 8, 16))
+                            .C = c(0.25, 0.5, 1, 2, 4, 8))
         }
 
         ##------------------------------------------------------------------
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
-        num.cv      <- 5
-        num.repeat  <- 5
+        num.cv      <- 10
+        num.repeat  <- 1
         num.total   <- num.cv * num.repeat
         
         ## define the seeds to be used in the fits

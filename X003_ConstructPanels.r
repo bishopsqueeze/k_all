@@ -38,6 +38,87 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 load("X002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
 ##------------------------------------------------------------------
+## Scale data (by shopping_pt) at the outset
+##------------------------------------------------------------------
+all.bkup      <- all.copy
+num.sp        <- unique(all.copy$shopping_pt)
+
+## loop over each shopping_pt
+for (i in num.sp) {
+    
+        ## isolate shopping_pt data
+        tmp.idx     <- which(all.copy$shopping_pt == i)
+        tmp.data    <- all.copy[ tmp.idx, ]
+        
+        ## scale numeric variables
+        tmp.data$car_age.bcs           <- scale(tmp.data$car_age.bc)
+        tmp.data$age_youngest.bcs      <- scale(tmp.data$age_youngest.bc)
+        tmp.data$age_oldest.bcs        <- scale(tmp.data$age_oldest.bc)
+        tmp.data$age_ratio.bcs         <- scale(tmp.data$age_ratio.bc)
+        tmp.data$duration_previous.rs  <- scale(tmp.data$duration_previous.r)
+        tmp.data$dayfrac.nrms          <- scale(tmp.data$dayfrac.nrm)
+        tmp.data$dayfrac.diffs         <- scale(tmp.data$dayfrac.diff)
+        tmp.data$dayfrac.cums          <- scale(tmp.data$dayfrac.cum)
+        tmp.data$dcost.s               <- scale(tmp.data$dcost)
+        tmp.data$ccost.s               <- scale(tmp.data$ccost)
+        tmp.data$rmin.bcs              <- scale(tmp.data$rmin.bc)
+        tmp.data$rmax.bcs              <- scale(tmp.data$rmax.bc)
+
+        ## name the scaled cost differently (historical reasons, see below)
+        tmp.data$cost.s              <- scale(tmp.data$cost.bc)
+
+        ## drop the prior values
+        tmp.data$car_age.bc            <- NULL
+        tmp.data$age_youngest.bc       <- NULL
+        tmp.data$age_oldest.bc         <- NULL
+        tmp.data$age_ratio.bc          <- NULL
+        tmp.data$duration_previous.r   <- NULL
+        tmp.data$dayfrac.nrm           <- NULL
+        tmp.data$dayfrac.diff          <- NULL
+        tmp.data$dayfrac.cum           <- NULL
+        tmp.data$dcost                 <- NULL
+        tmp.data$ccost                 <- NULL
+        tmp.data$rmin.bc               <- NULL
+        tmp.data$rmax.bc               <- NULL
+        tmp.data$cost.bc               <- NULL
+        
+        
+        ## scale the cost difference variables
+        cols    <- colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]
+        for (j in 1:length(cols)) {
+            tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
+        }
+        
+        ## scale the cost difference variables
+        cols    <- colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]
+        for (j in 1:length(cols)) {
+            tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
+        }
+        
+        ## accumulate results
+        if (i == 1) {
+            all.scaled  <- tmp.data
+        } else {
+            all.scaled  <- rbind(all.scaled, tmp.data)
+        }
+}
+
+## sort the results
+all.scaled  <- all.scaled[ order(all.scaled$customer_ID, all.scaled$shopping_pt), ]
+
+## clean-up the results (several of the shopping_pt == 1) scaled values were uniform
+all.scaled[ is.na(all.scaled$dayfrac.diffs), c("dayfrac.diffs")] <- 0
+all.scaled[ is.na(all.scaled$dayfrac.cums), c("dayfrac.cums")] <- 0
+all.scaled[ is.na(all.scaled$dcost.s), c("dcost.s")] <- 0
+all.scaled[ is.na(all.scaled$ccost.s), c("ccost.s")] <- 0
+all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]] <- 0
+all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]] <- 0
+
+## move the scaled data back to the original name
+all.copy <- all.scaled
+
+
+##------------------------------------------------------------------
 ## Set-up a sink
 ##------------------------------------------------------------------
 writeLines(c(""), "construct_panel_logfile.txt")
@@ -133,32 +214,6 @@ for (n in 0:1) {
         hist.train  <- df.cost
         cost.train  <- df.cost
         
-        ## scale numeric variables
-        all.train$car_age.bcs           <- scale(all.train$car_age.bc)
-        all.train$age_youngest.bcs      <- scale(all.train$age_youngest.bc)
-        all.train$age_oldest.bcs        <- scale(all.train$age_oldest.bc)
-        all.train$duration_previous.rs  <- scale(all.train$duration_previous.r)
-        all.train$dayfrac.nrms          <- scale(all.train$dayfrac.nrm)
-        all.train$dayfrac.diffs         <- scale(all.train$dayfrac.diff)
-        all.train$dayfrac.cums          <- scale(all.train$dayfrac.cum)
-        all.train$dcost.s               <- scale(all.train$dcost)
-        all.train$ccost.s               <- scale(all.train$ccost)
-        all.train$rmin.bcs              <- scale(all.train$rmin.bc)
-        all.train$rmax.bcs              <- scale(all.train$rmax.bc)
-        
-        ## drop the prior values
-        all.train$car_age.bc            <- NULL
-        all.train$age_youngest.bc       <- NULL
-        all.train$age_oldest.bc         <- NULL
-        all.train$duration_previous.r   <- NULL
-        all.train$dayfrac.nrm           <- NULL
-        all.train$dayfrac.diff          <- NULL
-        all.train$dayfrac.cum           <- NULL
-        all.train$dcost                 <- NULL
-        all.train$ccost                 <- NULL
-        all.train$rmin.bc               <- NULL
-        all.train$rmax.bc               <- NULL
-        
         ## explode the non-choice factor variables
         cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
         for (j in 1:length(cols)) {
@@ -179,32 +234,6 @@ for (n in 0:1) {
         all.test    <- join(smp, join(df.cost, df.hist, by="key"), by="key")
         hist.test   <- df.hist
         cost.test   <- df.cost
-        
-        ## scale numeric variables
-        all.test$car_age.bcs           <- scale(all.test$car_age.bc)
-        all.test$age_youngest.bcs      <- scale(all.test$age_youngest.bc)
-        all.test$age_oldest.bcs        <- scale(all.test$age_oldest.bc)
-        all.test$duration_previous.rs  <- scale(all.test$duration_previous.r)
-        all.test$dayfrac.nrms          <- scale(all.test$dayfrac.nrm)
-        all.test$dayfrac.diffs         <- scale(all.test$dayfrac.diff)
-        all.test$dayfrac.cums          <- scale(all.test$dayfrac.cum)
-        all.test$dcost.s               <- scale(all.test$dcost)
-        all.test$ccost.s               <- scale(all.test$ccost)
-        all.test$rmin.bcs              <- scale(all.test$rmin.bc)
-        all.test$rmax.bcs              <- scale(all.test$rmax.bc)
-        
-        ## drop the prior values
-        all.test$car_age.bc            <- NULL
-        all.test$age_youngest.bc       <- NULL
-        all.test$age_oldest.bc         <- NULL
-        all.test$duration_previous.r   <- NULL
-        all.test$dayfrac.nrm           <- NULL
-        all.test$dayfrac.diff          <- NULL
-        all.test$dayfrac.cum           <- NULL
-        all.test$dcost                 <- NULL
-        all.test$ccost                 <- NULL
-        all.test$rmin.bc               <- NULL
-        all.test$rmax.bc               <- NULL
 
         ## explode the non-choice factor variables
         cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
@@ -228,10 +257,11 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test ,file="X003_allstateRawData.Rdata")
+save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test, all.bkup, file="X003_allstateRawData.Rdata")
 
 ##------------------------------------------------------------------
 ## Close sink
 ##------------------------------------------------------------------
 sink()
+
 

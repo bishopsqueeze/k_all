@@ -56,6 +56,11 @@ all.data        <- all.data[ order(all.data$customer_ID, all.data$shopping_pt), 
 all.data$key    <- as.factor(paste(all.data$customer_ID, all.data$shopping_pt,sep="_"))
 
 ##------------------------------------------------------------------
+## Create some initial ratios
+##------------------------------------------------------------------
+all.data$age_ratio  <- (all.data$age_oldest / all.data$age_youngest)
+
+##------------------------------------------------------------------
 ## Identify instances of blanks/NAs in the data
 ##------------------------------------------------------------------
 
@@ -75,9 +80,11 @@ all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
     ##nzv <- nearZeroVar(all.data)
 
     ## estimate Box-Cox transformations for numeric variables
-    preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "cost")], method=c("BoxCox"))
-    all.data[,c("car_age.bc", "age_youngest.bc", "age_oldest.bc", "cost.bc")] <- predict(preProc, all.data[,c("car_age", "age_youngest", "age_oldest", "cost")])
+    preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "age_ratio", "cost")], method=c("BoxCox"))
+    all.data[,c("car_age.bc", "age_youngest.bc", "age_oldest.bc", "age_ratio.bc", "cost.bc")] <- predict(preProc, all.data[,c("car_age", "age_youngest", "age_oldest", "age_ratio", "cost")])
 
+    ## override the car_age.bc xform (as there was no xform applied)
+    all.data$car_age.bc <- log10(all.data$car_age + 1)
 
 ##------------------------------------------------------------------
 ## Assign state factors a numeric code
@@ -248,7 +255,7 @@ all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 9
 ##------------------------------------------------------------------
 ## <X> Create the scaled cost using the Box-Cox transformed variable
 ##------------------------------------------------------------------
-all.copy$cost.s              <- scale(all.copy$cost.bc)  ## scaled box-cox transformed cost
+#all.copy$cost.s              <- scale(all.copy$cost.bc)  ## scaled box-cox transformed cost
 
 
 ##------------------------------------------------------------------
@@ -266,6 +273,7 @@ all.copy$car_value              <- NULL
 all.copy$car_age        <- NULL
 all.copy$age_youngest   <- NULL
 all.copy$age_oldest     <- NULL
+all.copy$age_ratio      <- NULL
 all.copy$cost           <- NULL
 
 ##------------------------------------------------------------------
@@ -279,7 +287,7 @@ all.copy$rmax   <- NULL
 ##------------------------------------------------------------------
 all.copy$time        <- NULL
 all.copy$time.num    <- NULL
-all.copy$cost.bc     <- NULL
+#all.copy$cost.bc     <- NULL
 all.copy$custday_key <- NULL
 
 ##------------------------------------------------------------------
