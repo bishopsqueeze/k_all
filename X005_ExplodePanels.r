@@ -75,6 +75,7 @@ for (i in 2:11) {
                                            grep("^[A-G]10$", colnames(test.data)),
                                            grep("^[A-G]11$", colnames(test.data)))]
     
+    ## explode factors
     for (j in 1:length(cols.test)) {
         tmp.mat <- expandFactors(x=test.data[, eval(cols.test[j])], v=eval(cols.test[j]))
         if (j == 1) {
@@ -93,18 +94,6 @@ for (i in 2:11) {
     all.test    <- all.test[ , -grep("ABCDEFG", colnames(all.test)) ]
     all.test    <- all.test[ , -grep("^[A-G]$", colnames(all.test)) ]
     
-    ## scale the cost difference variables
-    #cols    <- colnames(all.test)[grep("^d[A-G]",colnames(all.test))]
-    #for (j in 1:length(cols)) {
-    #    all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
-    #}
-
-    ## scale the cost difference variables
-    #cols    <- colnames(all.test)[grep("^n[A-G]",colnames(all.test))]
-    #for (j in 1:length(cols)) {
-    #    all.test[, eval(cols[j])] <- scale(as.numeric(all.test[,eval(cols[j])]))
-    #}
-    
     ## save the results
     panel.test[[test.sp]]$data  <- all.test
     panel.test[[test.sp]]$sp    <- test.sp
@@ -122,6 +111,7 @@ for (i in 2:11) {
                                            grep("^[A-G]10$", colnames(train.data)),
                                            grep("^[A-G]11$", colnames(train.data)))]
 
+    ## explode factors
     for (j in 1:length(cols.train)) {
         tmp.mat <- expandFactors(x=train.data[, eval(cols.train[j])], v=eval(cols.train[j]))
         if (j == 1) {
@@ -139,19 +129,6 @@ for (i in 2:11) {
     ## remove the superfluous variables
     all.train    <- all.train[ , -grep("ABCDEFG", colnames(all.train)) ]
     all.train    <- all.train[ , -grep("^[A-G]$", colnames(all.train)) ]
-
-
-    ## scale the cost difference variables
-    #cols    <- colnames(all.train)[grep("^d[A-G]",colnames(all.train))]
-    #for (j in 1:length(cols)) {
-    #    all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
-    #}
-
-    ## scale the cost difference variables
-    #cols    <- colnames(all.train)[grep("^n[A-G]",colnames(all.train))]
-    #for (j in 1:length(cols)) {
-    #    all.train[, eval(cols[j])] <- scale(as.numeric(all.train[,eval(cols[j])]))
-    #}
     
     ## save the results
     panel.train[[train.sp]]$data  <- all.train
