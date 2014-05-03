@@ -218,24 +218,34 @@ all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 9
 ## <X> Treat location as a "market-size" variable based on the number
 ##     of times the location appears in the data
 ##------------------------------------------------------------------
-market.tbl <- table(all.copy$location.r)
-market.qtl <- quantile(market.tbl, probs=seq(0,1,0.2))  ## quintiles
 
-market.q1   <- names(market.tbl)[ (market.tbl <= 29) ]
-market.q2   <- names(market.tbl)[ (market.tbl > 29) & (market.tbl <= 77) ]
-market.q3   <- names(market.tbl)[ (market.tbl > 77) & (market.tbl <= 133) ]
-market.q4   <- names(market.tbl)[ (market.tbl > 133) & (market.tbl <= 208) ]
-market.q5   <- names(market.tbl)[ (market.tbl > 208) ]
+## create a cumulative distribution of locations
+market.tbl <- table(all.copy$location.r[ which(all.copy$location.r != 99999) ])
+market.cum <- cumsum(sort(market.tbl))/sum(market.tbl)
 
-tmp.loc     <- as.character(all.copy$location)
-market.fac  <- ifelse( tmp.loc == 99999, -9,
-                ifelse( tmp.loc %in% market.q1, 1,
-                 ifelse( tmp.loc %in% market.q2, 2,
-                  ifelse( tmp.loc %in% market,q3, 3,
-                   ifelse( tmp.loc %in% market.q4, 4, 5)))))
+## split the locations into deciles
+market.list <- list()
+market.seq  <- seq(0,1,0.1)
+for (i in 2:length(market.seq)) {
+    if ( i == 2 ) {
+        market.list[[i-1]]  <- names(market.cum)[ (market.cum <= market.seq[i]) ]
+    } else {
+        market.list[[i-1]]  <- names(market.cum)[ ((market.cum > market.seq[i-1]) & (market.cum <= market.seq[i])) ]
+    }
+}
 
-all.copy$loc <- as.factor(market.fac)
+## translate locations into names, then quintile proxies
+tmp.loc     <- as.character(all.copy$location.r)
+tmp.fac     <- rep(0, length(tmp.loc))
+for (i in 1:length(market.list)) {
+    tmp.fac[ which(tmp.loc %in% market.list[[i]]) ] <- i
+}
 
+## median replace the missing locations
+tmp.fac[ which(tmp.loc %in% "99999") ] <- median(tmp.fac)
+
+## return the re-coded data to the main dataframe
+all.copy$loc <- as.factor(tmp.fac)
 
 
 ##------------------------------------------------------------------
@@ -246,6 +256,7 @@ all.copy$loc <- as.factor(market.fac)
 ## <X> Drop the replaced variables
 ##------------------------------------------------------------------
 all.copy$location               <- NULL
+all.copy$location.r             <- NULL
 all.copy$risk_factor            <- NULL
 all.copy$C_previous             <- NULL
 all.copy$duration_previous      <- NULL
