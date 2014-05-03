@@ -27,7 +27,7 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load raw data
 ##------------------------------------------------------------------
-load("002_allstateRawData.Rdata")
+load("X002_allstateRawData.Rdata")
 
 
 ##******************************************************************
@@ -46,7 +46,7 @@ for (i in 1:11) {
 
     ## load the data
     tmp.id          <- paste("SP_",ifelse(i<10, paste("0",i,sep=""),i),sep="")
-    tmp.filename    <- paste("./panels/006_allstatePanelData_Train.",tmp.id,".Rdata",sep="")
+    tmp.filename    <- paste("./panels/004_allstatePanelData_Train.",tmp.id,".Rdata",sep="")
     load(tmp.filename)
 
     ## reassign the list to a dataframe
@@ -380,6 +380,53 @@ names(choice.tbl)   <- choice.vec
 
 choice.tbl[ which(choice.vec %in% names(purchase.tbl)) ] <- purchase.tbl
 choice.tbl  <- choice.tbl / sum(choice.tbl)
+
+
+
+##------------------------------------------------------------------
+##
+##------------------------------------------------------------------
+
+load("X003_allstateRawData.Rdata")
+
+tmp <- all.train[, c("shopping_pt", "ABCDEFG.T", "ABCDEFG.0")]
+
+eq.lq   <- subset(tmp, as.character(ABCDEFG.T) == as.character(ABCDEFG.0))
+ne.lq   <- subset(tmp, as.character(ABCDEFG.T) != as.character(ABCDEFG.0))
+
+mat.T           <- matrix(, nrow=nrow(ne.lq), ncol=7)
+mat.0           <- matrix(, nrow=nrow(ne.lq), ncol=7)
+colnames(mat.T) <- paste(LETTERS[1:7],".T",sep="")
+colnames(mat.0) <- paste(LETTERS[1:7],".0",sep="")
+
+for (i in 1:7) {
+    mat.T[,i] <- substr(ne.lq[,c("ABCDEFG.T")], i, i)
+    mat.0[,i] <- substr(ne.lq[,c("ABCDEFG.0")], i, i)
+}
+ne.df   <- data.frame(ne.lq, mat.T, mat.0)
+
+
+ne.letters <- matrix(,nrow=12, ncol=7)
+for (j in 1:12) {
+    for (i in 1:7) {
+        tmp.idx         <- which(ne.lq$shopping_pt == j)
+        ne.letters[j,i] <- mean( (ne.df[tmp.idx, paste(LETTERS[i],".T",sep="")] == ne.df[tmp.idx, paste(LETTERS[i],".0",sep="")]) )
+    }
+}
+colnames(ne.letters) <- LETTERS[1:7]
+rownames(ne.letters) <- 1:12
+
+
+ne.changes  <- 1*(mat.T != mat.0)
+
+
+prop.table(table(apply(ne.changes, 1, sum)))*100
+
+
+ne.concat.changes   <- apply(ne.changes, 1, paste, sep="", collapse="")
+
+prop.table(sort(table(ne.concat.changes), decreasing=TRUE))*100
+
 
 
 

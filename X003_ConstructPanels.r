@@ -258,6 +258,15 @@ for (n in 0:1) {
 
 
 ##------------------------------------------------------------------
+## Add some additional targets to the train file
+##------------------------------------------------------------------
+all.train$ne.lq <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
+for (i in 1:7) {
+    all.train[ , paste(LETTERS[i],"T.ne.",LETTERS[i],"0",sep="")] <- 1*(as.character(substr(all.train$ABCDEFG.T,i,i)) != as.character(substr(all.train$ABCDEFG.0,i,i)))
+}
+
+
+##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
 save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test, all.bkup, file="X003_allstateRawData.Rdata")
