@@ -6,6 +6,10 @@
 ##------------------------------------------------------------------
 ## Load libraries
 ##------------------------------------------------------------------
+library(gbm)
+library(survival)
+library(splines)
+library(plyr)
 library(caret)
 library(foreach)
 library(doMC)
@@ -188,6 +192,10 @@ for (i in 2:11) {
         drop.cols   <- c(drop.cols, tmp.y)
         drop.cols   <- drop.cols[ -which(drop.cols %in% eval(tmp.y)) ]
 
+        ## <X> drop the choices from the decision
+        #drop.cols <- c(drop.cols, colnames(tmp.object$data)[grep("[0-9].[0-9]$", colnames(tmp.object$data))])
+
+
         ##------------------------------------------------------------------
         ## define the BASE regression dataframe
         ##------------------------------------------------------------------
@@ -243,9 +251,9 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         if (i < 12) {
             gbmGrid    <- expand.grid(
-            .interaction.depth = c(7, 9),
             .interaction.depth = c(9),
-            .n.trees = c(25, 50, 100, 200, 300, 400, 500),
+            #.interaction.depth = c(9),
+            .n.trees = c(600, 800, 1000),
             #.n.trees = c(250, 300),
             .shrinkage = c(0.01))
         }
@@ -254,7 +262,7 @@ for (i in 2:11) {
         ## set-up the fit parameters using the pre-selected (stratified) samples
         ##------------------------------------------------------------------
         num.cv      <- 5
-        num.repeat  <- 1
+        num.repeat  <- 5
         num.total   <- num.cv * num.repeat
         
         ## define the seeds to be used in the fits
@@ -268,8 +276,8 @@ for (i in 2:11) {
                             method="repeatedcv",
                             number=num.cv,
                             repeats=num.repeat,
-                            classProbs=TRUE,
-                            summaryFunction=twoClassSummary,
+                            #classProbs=TRUE,
+                            #summaryFunction=twoClassSummary,
                             seeds=seeds)
     
         ##------------------------------------------------------------------
@@ -284,8 +292,8 @@ for (i in 2:11) {
                                 method="gbm",
                                 trControl=fitControl,
                                 verbose=FALSE,
-                                tuneGrid=gbmGrid,
-                                metric="ROC"))
+                                #metric="ROC",
+                                tuneGrid=gbmGrid))
         #})
         
         ##------------------------------------------------------------------
