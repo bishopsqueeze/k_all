@@ -381,19 +381,28 @@ names(choice.tbl)   <- choice.vec
 choice.tbl[ which(choice.vec %in% names(purchase.tbl)) ] <- purchase.tbl
 choice.tbl  <- choice.tbl / sum(choice.tbl)
 
+####################################################################
 
 
 ##------------------------------------------------------------------
-##
+## Examine which choices change if the LQ plan is not adopted
 ##------------------------------------------------------------------
 
+
+## Clear the workspace
+rm(list=ls())
+
+## read the data
 load("X003_allstateRawData.Rdata")
 
+## isolate the full plan choices
 tmp <- all.train[, c("shopping_pt", "ABCDEFG.T", "ABCDEFG.0")]
 
+## identify those that are equal vs. unequal
 eq.lq   <- subset(tmp, as.character(ABCDEFG.T) == as.character(ABCDEFG.0))
 ne.lq   <- subset(tmp, as.character(ABCDEFG.T) != as.character(ABCDEFG.0))
 
+## load matrices of choice differences
 mat.T           <- matrix(, nrow=nrow(ne.lq), ncol=7)
 mat.0           <- matrix(, nrow=nrow(ne.lq), ncol=7)
 colnames(mat.T) <- paste(LETTERS[1:7],".T",sep="")
@@ -405,7 +414,7 @@ for (i in 1:7) {
 }
 ne.df   <- data.frame(ne.lq, mat.T, mat.0)
 
-
+## compute the average change rate in each shopping_pt & letter
 ne.letters <- matrix(,nrow=12, ncol=7)
 for (j in 1:12) {
     for (i in 1:7) {
@@ -416,17 +425,22 @@ for (j in 1:12) {
 colnames(ne.letters) <- LETTERS[1:7]
 rownames(ne.letters) <- 1:12
 
-
+## identify a matrix of cases where a variable changs
 ne.changes  <- 1*(mat.T != mat.0)
 
-
+## compute a table of these changes
 prop.table(table(apply(ne.changes, 1, sum)))*100
 
-
+## create a "group" change value & tabulate the results
 ne.concat.changes   <- apply(ne.changes, 1, paste, sep="", collapse="")
-
 prop.table(sort(table(ne.concat.changes), decreasing=TRUE))*100
 
+ne.concat.changes.mat <- cbind(
+                        sort(table(ne.concat.changes), decreasing=TRUE),
+                        sort(table(ne.concat.changes), decreasing=TRUE)/sum(sort(table(ne.concat.changes), decreasing=TRUE)),
+                        sort(table(ne.concat.changes), decreasing=TRUE)/cumsum(sort(table(ne.concat.changes), decreasing=TRUE))
+                            )
 
-
-
+##
+ne.changes.sp  <- cbind(ne.lq$shopping_pt, apply(ne.changes, 1, sum))
+colnames(ne.changes.sp) <- c("shopping_pt", "num.changes")

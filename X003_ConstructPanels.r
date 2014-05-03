@@ -265,7 +265,6 @@ for (i in 1:7) {
     all.train[ , paste(LETTERS[i],"T.ne.",LETTERS[i],"0",sep="")] <- 1*(as.character(substr(all.train$ABCDEFG.T,i,i)) != as.character(substr(all.train$ABCDEFG.0,i,i)))
 }
 
-
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------

@@ -126,6 +126,9 @@ for (i in 2:11) {
     ## drop the custday key
     all.train$custday_key.u <- NULL
 
+    ## <X> add targets for testing lq vs. non-lq
+    all.train$lq.ne <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
+    
     ## remove the superfluous variables
     all.train    <- all.train[ , -grep("ABCDEFG", colnames(all.train)) ]
     all.train    <- all.train[ , -grep("^[A-G]$", colnames(all.train)) ]
