@@ -80,8 +80,8 @@ all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
     ##nzv <- nearZeroVar(all.data)
 
     ## estimate Box-Cox transformations for numeric variables
-    preProc <- preProcess(all.data[,c("car_age", "age_youngest", "age_oldest", "age_ratio", "cost")], method=c("BoxCox"))
-    all.data[,c("car_age.bc", "age_youngest.bc", "age_oldest.bc", "age_ratio.bc", "cost.bc")] <- predict(preProc, all.data[,c("car_age", "age_youngest", "age_oldest", "age_ratio", "cost")])
+    preProc <- preProcess(all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost")], method=c("BoxCox"))
+    all.data[,c("age_youngest.bc", "age_oldest.bc", "age_ratio.bc", "cost.bc")] <- predict(preProc, all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost")])
 
     ## override the car_age.bc xform (as there was no xform applied)
     all.data$car_age.bc <- log10(all.data$car_age + 1)
@@ -135,28 +135,8 @@ scrub.cols   <- c(names(all.na), names(all.bl))
     }
 
 ##------------------------------------------------------------------
-## Replace scrubbed car_value factors with a numeric code
-##------------------------------------------------------------------
-
-## first do a simple replacement
-#tmp.ch          <- as.character(all.copy$car_value.r)
-#tmp.ch          <- ifelse(tmp.ch == "", "z", tmp.ch)       ## encode remaining blanks as "z"
-#num.car_value   <- as.vector(unlist(sapply(tmp.ch, function(x){which(letters==x)})))
-
-## there are still some cars in the test data (only) with "z" ... median replace those
-#num.car_value[num.car_value == 26] <- median(num.car_value[num.car_value != 26])
-
-##------------------------------------------------------------------
-## Bin car ages into a decile factor
-##------------------------------------------------------------------
-#car_age.decile  <- cut(all.copy$car_age, breaks=quantile(all.copy$car_age, probs=seq(0, 1, 0.1)), include.lowest=TRUE)
-
-##------------------------------------------------------------------
 ## Append variables
 ##------------------------------------------------------------------
-#all.copy$car_value.num  <- num.car_value
-#all.copy$car_age.bin    <- car_age.decile
-#all.copy$state.num      <- num.state
 all.copy$time.num       <- num.min
 
 ##------------------------------------------------------------------
@@ -176,7 +156,7 @@ all.copy$dayfrac.nrm         <- num.min / (24*60)
 all.copy$custday_key         <- paste(all.copy$customer_ID, all.copy$day, sep="_")
 all.copy$custday_key.u       <- as.vector(unlist(tapply(all.copy$custday_key, all.copy$customer_ID, numUnique)))
 
-## estimated the cumulative time spent shopping for plans
+## estimate the cumulative time spent shopping for plans
 ##  - compute a period-over-period elapsed time, but ...
 ##  - ... correct the elapsed time s/t the first observation is 0 and any
 ##    negative values are set to zero (we might observe a negative elapsed
@@ -193,7 +173,7 @@ all.copy$dcost  <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, 
 ## cumulative cost differences (by customer_ID)
 all.copy$ccost  <- as.vector(unlist(tapply(all.copy$dcost, all.copy$customer_ID, function(x){cumsum(x)})))
 
-## ratio of current cost to minimum quoted cost (by customer_ID)
+## ratio of current cost to minimum/maximum quoted cost (by customer_ID)
 all.copy$rmin    <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, function(x){x/min(x,na.rm=TRUE)})))
 all.copy$rmax    <- as.vector(unlist(tapply(all.copy$cost, all.copy$customer_ID, function(x){x/max(x,na.rm=TRUE)})))
 all.copy$rmin.bc <- predict(BoxCoxTrans(all.copy$rmin), all.copy$rmin)      ## Box-Cox transform of skewed ratios
@@ -235,28 +215,8 @@ all.copy$duration_previous.r[ which(all.copy$duration_previous.r == -9) ]   <- 9
 all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 99999
 
 ##------------------------------------------------------------------
-## <X> Normalize variables at a later stage (except for cost)
+## <X> Normalize variables at a later stage
 ##------------------------------------------------------------------
-#all.copy$car_age.s           <- scale(all.copy$car_age)
-#all.copy$age_oldest.s        <- scale(all.copy$age_oldest)
-#all.copy$age_youngest.s      <- scale(all.copy$age_youngest)
-#all.copy$age_oldest.bcs      <- scale(all.copy$age_oldest.bc)       ## scaled box-cox transformed cost
-#all.copy$age_youngest.bcs    <- scale(all.copy$age_youngest.bc)     ## scaled box-cox transformed cost
-#all.copy$duration_previous.s <- scale(all.copy$duration_previous.r)
-#all.copy$dayfrac.cum.s       <- scale(all.copy$dayfrac.cum)
-#all.copy$dayfrac.nrm.s       <- scale(all.copy$dayfrac.nrm)
-
-#all.copy$cost.s              <- scale(all.copy$cost)     ## scaled cost
-#all.copy$dcost.s             <- scale(all.copy$dcost)    ## scaled change in cost from prior choice
-#all.copy$ccost.s             <- scale(all.copy$ccost)    ## scaled cumulative change in cost from first choice
-#all.copy$rmin.s              <- scale(all.copy$rmin)     ## scaled ratio of cost / min(cost)
-#all.copy$rmin.bcs            <- scale(all.copy$rmin.bc)  ## scaled box-cox transformed ratio of cost / min(cost)
-
-##------------------------------------------------------------------
-## <X> Create the scaled cost using the Box-Cox transformed variable
-##------------------------------------------------------------------
-#all.copy$cost.s              <- scale(all.copy$cost.bc)  ## scaled box-cox transformed cost
-
 
 ##------------------------------------------------------------------
 ## <X> Drop the replaced variables
@@ -304,7 +264,6 @@ all.copy  <- convert.magic(all.copy, factor.list, rep("factor", length(factor.li
 ## make a copy and then drop columns
 ##------------------------------------------------------------------
 all.copy.orig   <- all.copy
-#all.copy        <- all.copy.orig[ , -which(colnames(all.copy.orig) %in% drop.cols) ]
 
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file

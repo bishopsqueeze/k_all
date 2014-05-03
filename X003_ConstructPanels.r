@@ -37,9 +37,9 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 load("X002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
-##------------------------------------------------------------------
-## Scale data (by shopping_pt) at the outset
-##------------------------------------------------------------------
+##******************************************************************
+## Step 1:  Scale combined data (at each shopping_pt stage)
+##******************************************************************
 all.bkup      <- all.copy
 num.sp        <- unique(all.copy$shopping_pt)
 
@@ -82,7 +82,6 @@ for (i in num.sp) {
         tmp.data$rmax.bc               <- NULL
         tmp.data$cost.bc               <- NULL
         
-        
         ## scale the cost difference variables
         cols    <- colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]
         for (j in 1:length(cols)) {
@@ -103,7 +102,7 @@ for (i in num.sp) {
         }
 }
 
-## sort the results
+## sort the combined, scaled results
 all.scaled  <- all.scaled[ order(all.scaled$customer_ID, all.scaled$shopping_pt), ]
 
 ## clean-up the results (several of the shopping_pt == 1) scaled values were uniform
@@ -124,11 +123,11 @@ all.copy <- all.scaled
 writeLines(c(""), "construct_panel_logfile.txt")
 sink("construct_panel_logfile.txt", append=TRUE)
 
-##------------------------------------------------------------------
-## Create "wide" verions of the choice/cost history
+##******************************************************************
+## Step 2:  Create "wide" verions of the choice/cost history
 ## ... n == 0 --> loads the "test" data (57156 custmers)
 ## ... n == 1 --> loads the "training" data (97009 customers)
-##------------------------------------------------------------------
+##******************************************************************
 for (n in 0:1) {
 
     ##------------------------------------------------------------------
@@ -206,7 +205,7 @@ for (n in 0:1) {
     df.hist$key <- as.factor(rownames(df.hist))
     
     ##------------------------------------------------------------------
-    ## <X> write separate training and test panels
+    ## <X> explode variables separately for training and test panels
     ##------------------------------------------------------------------
     if (n == 1) {
 
@@ -214,7 +213,9 @@ for (n in 0:1) {
         hist.train  <- df.cost
         cost.train  <- df.cost
         
+        ##------------------------------------------------------------------
         ## explode the non-choice factor variables
+        ##------------------------------------------------------------------
         cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.train[, eval(cols[j])], v=eval(cols[j]))
@@ -235,7 +236,9 @@ for (n in 0:1) {
         hist.test   <- df.hist
         cost.test   <- df.cost
 
+        ##------------------------------------------------------------------
         ## explode the non-choice factor variables
+        ##------------------------------------------------------------------
         cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.test[, eval(cols[j])], v=eval(cols[j]))
