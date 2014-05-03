@@ -102,7 +102,7 @@ for (i in 11:3) {
                             #c("car_age", "car_age.bin", "age_oldest", "age_youngest"),
                             #c("duration_previous.r", "dcost", "ccost", "dayfrac.diff"),
                             ## [???] not sure what to do with this
-                            #c("location.r"),
+                            c("location.r"),
                             ## remove cost.s b/c contained elsewhere
                             c("cost.s"),
                             ## remove the intermediate concatenated plans
@@ -206,8 +206,10 @@ for (i in 11:3) {
         ##------------------------------------------------------------------
         #tmpClass  <- tmp.reg[ , tmp.y]
         #tmpDescr  <- tmp.reg[ , -which(colnames(tmp.reg) %in% tmp.y)]
-tmpClass  <- tmp.target
+tmpClass  <- as.factor(tmp.target)
 tmpDescr  <- tmp.reg
+
+## identify and crop classes that occur < 10% of the time
 
         ##------------------------------------------------------------------
         ## remove variables with exactly zero variance
@@ -225,13 +227,13 @@ tmpDescr  <- tmp.reg
         ## the number of total samples to 10,000 ... but isolate the sample
         ## using stratified sampling on the classes
         ##------------------------------------------------------------------
-        max.reg <- 10000
+max.reg <- 100000
         if ( length(tmpClass) > max.reg ) {
             reg.p   <- max.reg/length(tmpClass)
         } else {
             reg.p   <- 1
         }
-        set.seed(1234)
+        set.seed(7777777)
         reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
 
         ##------------------------------------------------------------------
@@ -251,10 +253,10 @@ tmpDescr  <- tmp.reg
         ##------------------------------------------------------------------
         if (i < 12) {
             gbmGrid    <- expand.grid(
-            .interaction.depth = c(7, 9),
+            .interaction.depth = c(7),
             #.interaction.depth = c(9),
             #.n.trees = c(25, 50, 100, 150, 200, 250, 300, 350, 400, 500),
-            .n.trees = c(25, 50, 100, 200, 300, 400, 500),
+            .n.trees = c(250),
             .shrinkage = c(0.01))
         }
 
@@ -266,7 +268,7 @@ tmpDescr  <- tmp.reg
         num.total   <- num.cv * num.repeat
         
         ## define the seeds to be used in the fits
-        set.seed(123)
+        set.seed(88888888)
         seeds <- vector(mode = "list", length = (num.total + 1))
         for(k in 1:num.total) seeds[[k]] <- sample.int(1000, nrow(gbmGrid))
         seeds[[num.total+1]] <- sample.int(1000, 1)

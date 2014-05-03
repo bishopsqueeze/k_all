@@ -215,6 +215,30 @@ all.copy$duration_previous.r[ which(all.copy$duration_previous.r == -9) ]   <- 9
 all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 99999
 
 ##------------------------------------------------------------------
+## <X> Treat location as a "market-size" variable based on the number
+##     of times the location appears in the data
+##------------------------------------------------------------------
+market.tbl <- table(all.copy$location.r)
+market.qtl <- quantile(market.tbl, probs=seq(0,1,0.2))  ## quintiles
+
+market.q1   <- names(market.tbl)[ (market.tbl <= 29) ]
+market.q2   <- names(market.tbl)[ (market.tbl > 29) & (market.tbl <= 77) ]
+market.q3   <- names(market.tbl)[ (market.tbl > 77) & (market.tbl <= 133) ]
+market.q4   <- names(market.tbl)[ (market.tbl > 133) & (market.tbl <= 208) ]
+market.q5   <- names(market.tbl)[ (market.tbl > 208) ]
+
+tmp.loc     <- as.character(all.copy$location)
+market.fac  <- ifelse( tmp.loc == 99999, -9,
+                ifelse( tmp.loc %in% market.q1, 1,
+                 ifelse( tmp.loc %in% market.q2, 2,
+                  ifelse( tmp.loc %in% market,q3, 3,
+                   ifelse( tmp.loc %in% market.q4, 4, 5)))))
+
+all.copy$loc <- as.factor(market.fac)
+
+
+
+##------------------------------------------------------------------
 ## <X> Normalize variables at a later stage
 ##------------------------------------------------------------------
 
