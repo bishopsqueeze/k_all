@@ -216,7 +216,7 @@ for (n in 0:1) {
         ##------------------------------------------------------------------
         ## explode the non-choice factor variables
         ##------------------------------------------------------------------
-        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
+        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.train[, eval(cols[j])], v=eval(cols[j]))
             if (j == 1) {
@@ -239,7 +239,7 @@ for (n in 0:1) {
         ##------------------------------------------------------------------
         ## explode the non-choice factor variables
         ##------------------------------------------------------------------
-        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r")
+        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.test[, eval(cols[j])], v=eval(cols[j]))
             if (j == 1) {

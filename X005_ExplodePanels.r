@@ -63,17 +63,31 @@ panel.train <- list()
 
 for (i in 2:11) {
     
-    ##------------------------------------------------------------------
+    ##******************************************************************
     ## load the test data
-    ##------------------------------------------------------------------
+    ##******************************************************************
     test.data     <- test.list[[i]]$data
     test.len      <- test.list[[i]]$len
     test.sp       <- test.list[[i]]$sp
     
+    ##------------------------------------------------------------------
+    ## Create an set of interaction terms amongst the last observations
+    ##------------------------------------------------------------------
+    cols.0  <- colnames(test.data)[grep("^[A-G][0]$", colnames(test.data))]
+    for (a in 1:(length(cols.0)-1)) {
+        for (b in (a+1):length(cols.0)) {
+            tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
+            tmp.fac <- paste(test.data[,cols.0[a]], test.data[,cols.0[b]], sep="")
+            
+            test.data[,tmp.col] <- as.factor(tmp.fac)
+        }
+    }
+
     ## expand factors into a set of binary variables
     cols.test     <- colnames(test.data)[c(grep("^[A-G][0-9]$", colnames(test.data)),
                                            grep("^[A-G]10$", colnames(test.data)),
-                                           grep("^[A-G]11$", colnames(test.data)))]
+                                           grep("^[A-G]11$", colnames(test.data)),
+                                           grep("[A-G][0]x[A-G][0]",colnames(test.data)))]
     
     ## explode factors
     for (j in 1:length(cols.test)) {
@@ -99,17 +113,31 @@ for (i in 2:11) {
     panel.test[[test.sp]]$sp    <- test.sp
     panel.test[[test.sp]]$len   <- test.len
     
-    ##------------------------------------------------------------------
+    ##******************************************************************
     ## load the training data
-    ##------------------------------------------------------------------
+    ##******************************************************************
     train.data    <- train.list[[i]]$data
     train.len     <- train.list[[i]]$len
     train.sp      <- train.list[[i]]$sp
 
+    ##------------------------------------------------------------------
+    ## Create an set of interaction terms amongst the last observations
+    ##------------------------------------------------------------------
+    cols.0  <- colnames(train.data)[grep("^[A-G][0]$", colnames(train.data))]
+    for (a in 1:(length(cols.0)-1)) {
+        for (b in (a+1):length(cols.0)) {
+            tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
+            tmp.fac <- paste(train.data[,cols.0[a]], train.data[,cols.0[b]], sep="")
+            
+            train.data[,tmp.col] <- as.factor(tmp.fac)
+        }
+    }
+
     ## expand factors into a set of binary variables
     cols.train     <- colnames(train.data)[c(grep("^[A-G][0-9]$", colnames(train.data)),
                                            grep("^[A-G]10$", colnames(train.data)),
-                                           grep("^[A-G]11$", colnames(train.data)))]
+                                           grep("^[A-G]11$", colnames(train.data)),
+                                           grep("[A-G][0]x[A-G][0]",colnames(train.data)))]
 
     ## explode factors
     for (j in 1:length(cols.train)) {
