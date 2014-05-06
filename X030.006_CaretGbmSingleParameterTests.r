@@ -39,7 +39,7 @@ panel.num       <- length(panel.files)
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:11) {
+for (i in 11:2) {
 
     ## get panel filenames
     tmp.filename    <- panel.files[i]

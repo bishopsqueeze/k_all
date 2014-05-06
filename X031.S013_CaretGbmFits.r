@@ -264,8 +264,8 @@ for (i in 11:2) {
         ## A configuration parameters
         ##------------------------------------------------------------------
         if (i < 12) {
-            gbm.d <- 7
-            gbm.n <- 250
+            gbm.d <- 9
+            gbm.n <- 500
         }
         gbmGrid <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.01)
         
