@@ -25,26 +25,9 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 
 ###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ### The goal here should be to
-### [1] explode the choice parameters
-### [3] use caret to identify near-zero variables
-### [4] use caret to identify linear combinations of variables
-### [5] ensure that the training and test data have identical sets
-###     of variables ... dropping those that are mismatched
-### [6] ensure that everything in the dataset can be expressed as
-###     a numeric/integer variables
 ### [7] confirm that the format is generally consistent with what
 ###     is described in the predictive analytics paper
-###
-### [2] compute interactions between choices ?
 ###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-### ??? maybe load these together to get a sense for what truly
-###     is a near-zero variable
-
-### STEP 0 -- remove superfluous variables (now that we have panels ... e.g., ABCDEFG)
-### STEP 1 -- remove near-zero variables (to reduce dimensions)
-### STEP 2 --
 
 ##------------------------------------------------------------------
 ## Load data (each should contain an object called "panel.list"
@@ -73,21 +56,20 @@ for (i in 2:11) {
     ##------------------------------------------------------------------
     ## Create an set of interaction terms amongst the last observations
     ##------------------------------------------------------------------
-    cols.0  <- colnames(test.data)[grep("^[A-G][0]$", colnames(test.data))]
-    for (a in 1:(length(cols.0)-1)) {
-        for (b in (a+1):length(cols.0)) {
-            tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
-            tmp.fac <- paste(test.data[,cols.0[a]], test.data[,cols.0[b]], sep="")
-            
-            test.data[,tmp.col] <- as.factor(tmp.fac)
-        }
-    }
+    #cols.0  <- colnames(test.data)[grep("^[A-G][0]$", colnames(test.data))]
+    #for (a in 1:(length(cols.0)-1)) {
+    #    for (b in (a+1):length(cols.0)) {
+    #        tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
+    #        tmp.fac <- paste(test.data[,cols.0[a]], test.data[,cols.0[b]], sep="")
+    #
+    #        test.data[,tmp.col] <- as.factor(tmp.fac)
+    #    }
+    #}
 
     ## expand factors into a set of binary variables
     cols.test     <- colnames(test.data)[c(grep("^[A-G][0-9]$", colnames(test.data)),
                                            grep("^[A-G]10$", colnames(test.data)),
-                                           grep("^[A-G]11$", colnames(test.data)),
-                                           grep("[A-G][0]x[A-G][0]",colnames(test.data)))]
+                                           grep("^[A-G]11$", colnames(test.data)))] ## grep("[A-G][0]x[A-G][0]",colnames(test.data)))]
     
     ## explode factors
     for (j in 1:length(cols.test)) {
@@ -123,21 +105,20 @@ for (i in 2:11) {
     ##------------------------------------------------------------------
     ## Create an set of interaction terms amongst the last observations
     ##------------------------------------------------------------------
-    cols.0  <- colnames(train.data)[grep("^[A-G][0]$", colnames(train.data))]
-    for (a in 1:(length(cols.0)-1)) {
-        for (b in (a+1):length(cols.0)) {
-            tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
-            tmp.fac <- paste(train.data[,cols.0[a]], train.data[,cols.0[b]], sep="")
-            
-            train.data[,tmp.col] <- as.factor(tmp.fac)
-        }
-    }
+    #cols.0  <- colnames(train.data)[grep("^[A-G][0]$", colnames(train.data))]
+    #for (a in 1:(length(cols.0)-1)) {
+    #    for (b in (a+1):length(cols.0)) {
+    #        tmp.col <- paste(cols.0[a],"x",cols.0[b],sep="")
+    #        tmp.fac <- paste(train.data[,cols.0[a]], train.data[,cols.0[b]], sep="")
+    #
+    #        train.data[,tmp.col] <- as.factor(tmp.fac)
+    #    }
+    #}
 
     ## expand factors into a set of binary variables
     cols.train     <- colnames(train.data)[c(grep("^[A-G][0-9]$", colnames(train.data)),
                                            grep("^[A-G]10$", colnames(train.data)),
-                                           grep("^[A-G]11$", colnames(train.data)),
-                                           grep("[A-G][0]x[A-G][0]",colnames(train.data)))]
+                                           grep("^[A-G]11$", colnames(train.data)))]    ##grep("[A-G][0]x[A-G][0]",colnames(train.data))]
 
     ## explode factors
     for (j in 1:length(cols.train)) {
