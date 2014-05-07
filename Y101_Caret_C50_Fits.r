@@ -23,9 +23,9 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
-DO_PARAMETER_SWEEP  <- FALSE
+DO_PARAMETER_SWEEP  <- TRUE
 DO_HOLD_OUT_SAMPLE  <- FALSE
-DO_FINAL_FIT        <- TRUE
+DO_FINAL_FIT        <- FALSE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -48,11 +48,10 @@ panel.num       <- length(panel.files)
 ## load the test data
 test.files     <- dir("./panels")[(grep("X005_allstatePanelData_Test", dir("./panels")))]
 
-
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:11) {
+for (i in 10:10) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -75,14 +74,14 @@ for (i in 2:11) {
     tmp.len     <- tmp.object$len
     
     ## define the groups to test
-    #groups <- c("A","B","C","D","E","F","G")
-    groups <- c("CG")
+    groups <- c("A","B","C","D","E","F","G")
+    #groups <- c("CG")
     
     ##------------------------------------------------------------------
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
     #for (j in 1:length(groups)) {
-    for (j in 1:1) {
+    for (j in 7:7) {
         
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -183,7 +182,14 @@ for (i in 2:11) {
         #highlyCorDescr  <- highlyCorDescr[ -which(highlyCorDescr %in% highlyCorDescr[grep("^[A-G]", highlyCorDescr)])]
         #tmpDescr        <- tmpDescr[ , -which(colnames(tmpDescr) %in% highlyCorDescr)]
 
-
+        ##------------------------------------------------------------------
+        ## check for linearly-related variables
+        ##------------------------------------------------------------------
+        #comboDescr      <- findLinearCombos(tmpDescr)
+        #comboVars       <- colnames(tmpDescr)[comboDescr$remove]
+        #comboVars       <- comboVars[ -grep("[A-G][0-9].[0-9]", comboVars) ]
+        #tmpDescr        <- tmpDescr[, -comboDescr$remove]
+        
         ##******************************************************************
         ## Define the samples to be used since there is a danger that
         ## thinly populated classes might cause a sampling failure
@@ -205,7 +211,7 @@ for (i in 2:11) {
             } else {
               reg.p   <- 1
             }
-            set.seed(4321)
+            set.seed(1234)
             reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
             
             ##------------------------------------------------------------------
@@ -215,14 +221,23 @@ for (i in 2:11) {
             holdDescr   <- NULL
             tmpClass    <- tmpClass[ reg.idx[[1]] ]
             tmpDescr    <- tmpDescr[ reg.idx[[1]], ]
+            
+            ##------------------------------------------------------------------
+            ## define the tuning parameters
+            ##------------------------------------------------------------------
+            c50.trials  <- seq(50, 500, 50)
+            c50.winnow  <- c(FALSE)
+            c50.model   <- c("rules")
+            
+            ## output file
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Sweep.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for a hold-out sample
         ##------------------------------------------------------------------
         } else if (DO_HOLD_OUT_SAMPLE) {
-            
   
-            set.seed(88888888)
+            set.seed(1234)
             numObs      <- nrow(tmpDescr)
             holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
 
@@ -230,6 +245,16 @@ for (i in 2:11) {
             holdDescr   <- tmpDescr[holdSmp, ]
             tmpClass    <- droplevels(tmpClass[-holdSmp])
             tmpDescr    <- tmpDescr[-holdSmp, ]
+
+            ##------------------------------------------------------------------
+            ## define the tuning parameters
+            ##------------------------------------------------------------------
+            c50.trials  <- c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90)
+            c50.winnow  <- c(FALSE)
+            c50.model   <- c("rules")
+
+            ## output file
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_HoldOut.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for the final fit
@@ -240,15 +265,34 @@ for (i in 2:11) {
             holdDescr   <- NULL
             tmpClass    <- droplevels(tmpClass)
             tmpDescr    <- tmpDescr
+            
+            ##------------------------------------------------------------------
+            ## define the tuning parameters
+            ##------------------------------------------------------------------
+            if (i <= 12) {
+                c50.trials  <- c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90)
+                c50.winnow  <- c(FALSE)
+                c50.model   <- c("rules")
+            }
+            
+            ## output file
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Final.Rdata",sep="")
 
         }
+
+        ##------------------------------------------------------------------
+        ## define the fit grid
+        ##------------------------------------------------------------------
+        c50Grid <- expand.grid(.trials=c50.trials, .model=c50.model, .winnow=c50.winnow)
 
         ##------------------------------------------------------------------
         ## define the test dataset
         ##------------------------------------------------------------------
         testDescr <- test.data[ , which(colnames(test.data) %in% colnames(tmpDescr)) ]
         
+        ##------------------------------------------------------------------
         ## sync testDescr names with tmpDescr names
+        ##------------------------------------------------------------------
         misMatchCols <- which( !(colnames(tmpDescr) %in% colnames(testDescr)) )
         if (length(misMatchCols) > 0) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
@@ -259,43 +303,6 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         tmpDescr    <- as.matrix(tmpDescr)
         testDescr   <- as.matrix(testDescr)
-
-        
-        ##******************************************************************
-        ## set-up model configuration parameters
-        ##******************************************************************
-        if (i == 2) {
-            gbm.d <- 9
-            gbm.n <- 450
-        } else if (i == 3) {
-            gbm.d <- 7
-            gbm.n <- 250
-        } else if (i == 4) {
-            gbm.d <- 7
-            gbm.n <- 50
-        } else if (i == 5) {
-            gbm.d <- 7
-            gbm.n <- 250
-        } else if (i == 6) {
-            gbm.d <- 9
-            gbm.n <- 50
-        } else if (i == 7) {
-            gbm.d <- 9
-            gbm.n <- 150
-        } else if (i == 8) {
-            gbm.d <- 9
-            gbm.n <- 150
-        } else if (i == 9) {
-            gbm.d <- 9
-            gbm.n <- 50
-        } else if (i == 10) {
-            gbm.d <- 9
-            gbm.n <- 350
-        } else if (i == 11) {
-            gbm.d <- 7
-            gbm.n <- 350
-        }
-        gbmGrid <- expand.grid(.interaction.depth = gbm.d, .n.trees = gbm.n, .shrinkage = 0.01)
         
         
         ##******************************************************************
@@ -305,15 +312,16 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         ## k-fold cross-validation
         ##------------------------------------------------------------------
-        if (!DO_FINAL_FIT) {
+        if ( !DO_FINAL_FIT ) {
             
             num.cv      <- 5
             num.repeat  <- 5
             num.total   <- num.cv * num.repeat
+num.tune    <- 10
             
             set.seed(1234)
             seeds                               <- vector(mode = "list", length = (num.total + 1))
-            for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, nrow(gbmGrid))
+for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, 10)
             seeds[[num.total+1]]                <- sample.int(1000, 1)
             
             ## test of repeated CV for G-class
@@ -337,10 +345,10 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
-                                method="gbm",
+                                method="C5.0",
                                 trControl=fitControl,
                                 verbose=FALSE,
-                                tuneGrid=gbmGrid))
+                                tuneGrid=c50Grid))
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
@@ -351,6 +359,7 @@ for (i in 2:11) {
             cat("Saving fit to file ...", out.filename, "\n")
             save(tmp.fit, tmpClass, tmpDescr, tmp.data, testDescr, test.data, holdClass, holdDescr, file=out.filename)
         }
+        
     }
 }
 
