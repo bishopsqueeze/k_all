@@ -47,7 +47,7 @@ pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LET
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_X014")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/c50_scored_Y015")
 
 ##------------------------------------------------------------------
 ## Load fit data
@@ -104,12 +104,12 @@ pred.test$ABCDEFG.lq    <- apply(pred.test[, LETTERS[1:7]], 1, paste, collapse="
 ##------------------------------------------------------------------
 #pred.test$A_ONLY.pred   <- apply(pred.test[, c("A.pred", "B", "C", "D", "E", "F", "G")], 1, paste, collapse="")
 #pred.test$B_ONLY.pred   <- apply(pred.test[, c("A", "B.pred", "C", "D", "E", "F", "G")], 1, paste, collapse="")
-pred.test$C_ONLY.pred    <- apply(pred.test[, c("A", "B", "C.pred", "D", "E", "F", "G")], 1, paste, collapse="")
+#pred.test$C_ONLY.pred    <- apply(pred.test[, c("A", "B", "C.pred", "D", "E", "F", "G")], 1, paste, collapse="")
 #pred.test$D_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D.pred", "E", "F", "G")], 1, paste, collapse="")
 #pred.test$E_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E.pred", "F", "G")], 1, paste, collapse="")
 #pred.test$F_ONLY.pred   <- apply(pred.test[, c("A", "B", "C", "D", "E", "F.pred", "G")], 1, paste, collapse="")
 pred.test$G_ONLY.pred    <- apply(pred.test[, c("A", "B", "C", "D", "E", "F", "G.pred")], 1, paste, collapse="")
-pred.test$CG_ONLY.pred   <- apply(pred.test[, c("A", "B", "C.pred", "D", "E", "F", "G.pred")], 1, paste, collapse="")
+#pred.test$CG_ONLY.pred   <- apply(pred.test[, c("A", "B", "C.pred", "D", "E", "F", "G.pred")], 1, paste, collapse="")
 
 
 ##******************************************************************
@@ -154,24 +154,24 @@ gbm_gonly.fin <- gbm_gonly.sub[ ,c("customer_ID", "plan")]
 
 
 ## C-only
-gbm_conly.sub   <- data.frame(
-                        customer_ID = as.integer(pred.sub$customer_ID),
-                        shopping_pt = as.integer(pred.sub$shopping_pt),
-                        key = as.character(pred.sub$key),
-                        plan = as.character(pred.sub$C_ONLY.pred) )
+#gbm_conly.sub   <- data.frame(
+#                        customer_ID = as.integer(pred.sub$customer_ID),
+#                        shopping_pt = as.integer(pred.sub$shopping_pt),
+#                        key = as.character(pred.sub$key),
+#                        plan = as.character(pred.sub$C_ONLY.pred) )
 ## save in submission format
-gbm_conly.fin <- gbm_conly.sub[ ,c("customer_ID", "plan")]
+#gbm_conly.fin <- gbm_conly.sub[ ,c("customer_ID", "plan")]
 
 
 
 ## C+G
-gbm_cg.sub   <- data.frame(
-                        customer_ID = as.integer(pred.sub$customer_ID),
-                        shopping_pt = as.integer(pred.sub$shopping_pt),
-                        key = as.character(pred.sub$key),
-                        plan = as.character(pred.sub$CG_ONLY.pred) )
+#gbm_cg.sub   <- data.frame(
+#                        customer_ID = as.integer(pred.sub$customer_ID),
+#                        shopping_pt = as.integer(pred.sub$shopping_pt),
+#                        key = as.character(pred.sub$key),
+#                        plan = as.character(pred.sub$CG_ONLY.pred) )
 ## save in submission format
-gbm_cg.fin <- gbm_cg.sub[ ,c("customer_ID", "plan")]
+#gbm_cg.fin <- gbm_cg.sub[ ,c("customer_ID", "plan")]
 
 
 
@@ -183,7 +183,7 @@ gbm_cg.fin <- gbm_cg.sub[ ,c("customer_ID", "plan")]
 lq.idx  <- (as.character(lastquoted.fin$plan) != as.character(lastquoted.fin$plan))
 g.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_gonly.fin$plan))
 #b.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_bonly.fin$plan))
-c.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_conly.fin$plan))
+#c.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_conly.fin$plan))
 #e.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_eonly.fin$plan))
 #f.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_fonly.fin$plan))
 
@@ -191,14 +191,14 @@ c.idx   <- (as.character(lastquoted.fin$plan) != as.character(gbm_conly.fin$plan
 lq.ch           <- convert.magic(lastquoted.fin, "plan", "character")
 gonly.ch        <- convert.magic(gbm_gonly.fin, "plan", "character")
 #bonly.ch        <- convert.magic(gbm_bonly.fin, "plan", "character")
-conly.ch        <- convert.magic(gbm_conly.fin, "plan", "character")
+#conly.ch        <- convert.magic(gbm_conly.fin, "plan", "character")
 #eonly.ch        <- convert.magic(gbm_eonly.fin, "plan", "character")
 #fonly.ch        <- convert.magic(gbm_fonly.fin, "plan", "character")
 
 ## create updated plans by selectively adding variables
-gc.idx                <- !(g.idx) & (c.idx)   ## not where g changed from LQ & where c changed from LQ
-gbm_gc.layer          <- gonly.ch
-gbm_gc.layer[gc.idx,] <- conly.ch[gc.idx, ]
+#gc.idx                <- !(g.idx) & (c.idx)   ## not where g changed from LQ & where c changed from LQ
+#gbm_gc.layer          <- gonly.ch
+#gbm_gc.layer[gc.idx,] <- conly.ch[gc.idx, ]
 
 ## create updated plans by selectively adding variables
 #gb.idx          <- !(g.idx) & (b.idx)   ## not where g changed from LQ & where c changed from LQ
@@ -219,11 +219,11 @@ gbm_gc.layer[gc.idx,] <- conly.ch[gc.idx, ]
 ##******************************************************************
 ## Step 5: Write submissions to file
 ##******************************************************************
-write.csv(lastquoted.fin,   file="X014_lastquoted.csv", row.names=FALSE)
-write.csv(gbm_gonly.fin,    file="X014_gbm_gonly.csv", row.names=FALSE)
-write.csv(gbm_conly.fin,    file="X014_gbm_conly.csv", row.names=FALSE)
-write.csv(gbm_cg.fin,       file="X014_gbm_cg.csv", row.names=FALSE)
-write.csv(gbm_gc.layer,     file="X014_gbm_cg_layer.csv", row.names=FALSE)
+write.csv(lastquoted.fin,   file="Y015_lastquoted.csv", row.names=FALSE)
+write.csv(c50_gonly.fin,    file="Y015_gbm_gonly.csv", row.names=FALSE)
+#write.csv(gbm_conly.fin,    file="Y015_gbm_conly.csv", row.names=FALSE)
+#write.csv(gbm_cg.fin,       file="Y015_gbm_cg.csv", row.names=FALSE)
+#write.csv(gbm_gc.layer,     file="Y015_gbm_cg_layer.csv", row.names=FALSE)
 #write.csv(gbm_gb,           file="X011_gbm_gb.csv", row.names=FALSE)
 #write.csv(gbm_ge,           file="X011_gbm_ge.csv", row.names=FALSE)
 #write.csv(gbm_gf,           file="X011_gbm_gf.csv", row.names=FALSE)

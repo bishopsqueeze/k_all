@@ -35,7 +35,7 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load data
 ##------------------------------------------------------------------
-load("X002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
+load("Y002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
 
 ##******************************************************************
 ## Step 1:  Scale combined data (at each shopping_pt stage)
@@ -65,7 +65,7 @@ for (i in num.sp) {
         tmp.data$rmax.bcs              <- scale(tmp.data$rmax.bc)
 
         ## name the scaled cost differently (historical reasons, see below)
-        tmp.data$cost.s              <- scale(tmp.data$cost.bc)
+        tmp.data$cost.s                <- scale(tmp.data$cost.bc)
 
         ## drop the prior values
         tmp.data$car_age.bc            <- NULL
@@ -83,16 +83,16 @@ for (i in num.sp) {
         tmp.data$cost.bc               <- NULL
         
         ## scale the cost difference variables
-        cols    <- colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]
-        for (j in 1:length(cols)) {
-            tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
-        }
+        #cols    <- colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]
+        #for (j in 1:length(cols)) {
+        #    tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
+        #}
         
         ## scale the cost difference variables
-        cols    <- colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]
-        for (j in 1:length(cols)) {
-            tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
-        }
+        #cols    <- colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]
+        #for (j in 1:length(cols)) {
+        #    tmp.data[, eval(cols[j])] <- scale(as.numeric(tmp.data[,eval(cols[j])]))
+        #}
         
         ## accumulate results
         if (i == 1) {
@@ -110,8 +110,8 @@ all.scaled[ is.na(all.scaled$dayfrac.diffs), c("dayfrac.diffs")] <- 0
 all.scaled[ is.na(all.scaled$dayfrac.cums), c("dayfrac.cums")] <- 0
 all.scaled[ is.na(all.scaled$dcost.s), c("dcost.s")] <- 0
 all.scaled[ is.na(all.scaled$ccost.s), c("ccost.s")] <- 0
-all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]] <- 0
-all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]] <- 0
+#all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^d[A-G]",colnames(tmp.data))]] <- 0
+#all.scaled[ which(all.scaled$shopping_pt == 1), colnames(tmp.data)[grep("^n[A-G]",colnames(tmp.data))]] <- 0
 
 ## move the scaled data back to the original name
 all.copy <- all.scaled
@@ -216,7 +216,9 @@ for (n in 0:1) {
         ##------------------------------------------------------------------
         ## explode the non-choice factor variables
         ##------------------------------------------------------------------
-        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
+        ##cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
+        cols <- c("state")
+
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.train[, eval(cols[j])], v=eval(cols[j]))
             if (j == 1) {
@@ -228,7 +230,7 @@ for (n in 0:1) {
         all.train   <- cbind(all.train, tmp.exploded)
         all.train   <- all.train[, -(which(colnames(all.train) %in% cols))]
         
-        save(all.copy, all.train, hist.train, cost.train, file="X003_allstateRawData_Train.Rdata")
+        save(all.copy, all.train, hist.train, cost.train, file="Y003_allstateRawData_Train.Rdata")
         
     } else {
         
@@ -239,7 +241,9 @@ for (n in 0:1) {
         ##------------------------------------------------------------------
         ## explode the non-choice factor variables
         ##------------------------------------------------------------------
-        cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
+        ##cols <- c("day", "state", "group_size", "homeowner", "married_couple", "risk_factor.r", "C_previous.r", "car_value.r", "loc")
+        cols <- c("state")
+
         for (j in 1:length(cols)) {
             tmp.mat <- expandFactors(x=all.test[, eval(cols[j])], v=eval(cols[j]))
             if (j == 1) {
@@ -251,7 +255,7 @@ for (n in 0:1) {
         all.test   <- cbind(all.test, tmp.exploded)
         all.test   <- all.test[, -(which(colnames(all.test) %in% cols))]
 
-        save(all.copy, all.test, hist.test, cost.test, file="X003_allstateRawData_Test.Rdata")
+        save(all.copy, all.test, hist.test, cost.test, file="Y003_allstateRawData_Test.Rdata")
     }
 
 } ## end of the main for-loop
@@ -260,15 +264,15 @@ for (n in 0:1) {
 ##------------------------------------------------------------------
 ## Add some additional targets to the train file
 ##------------------------------------------------------------------
-all.train$ne.lq <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
-for (i in 1:7) {
-    all.train[ , paste(LETTERS[i],"T.ne.",LETTERS[i],"0",sep="")] <- 1*(as.character(substr(all.train$ABCDEFG.T,i,i)) != as.character(substr(all.train$ABCDEFG.0,i,i)))
-}
+#all.train$ne.lq <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
+#for (i in 1:7) {
+#    all.train[ , paste(LETTERS[i],"T.ne.",LETTERS[i],"0",sep="")] <- 1*(as.character(substr(all.train$ABCDEFG.T,i,i)) != as.character(substr(all.train$ABCDEFG.0,i,i)))
+#}
 
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test, all.bkup, file="X003_allstateRawData.Rdata")
+save(all.copy, all.train, all.test, hist.train, cost.train, hist.test, cost.test, all.bkup, file="Y003_allstateRawData.Rdata")
 
 ##------------------------------------------------------------------
 ## Close sink

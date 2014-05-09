@@ -28,10 +28,10 @@ for (n in 0:1) {
     ## Load data
     ##------------------------------------------------------------------
     if (n == 0) {
-        load("X003_allstateRawData_Test.Rdata")
+        load("Y003_allstateRawData_Test.Rdata")
         smp <- all.test; rm(all.test, all.copy, cost.test, hist.test)
     } else {
-        load("X003_allstateRawData_Train.Rdata")
+        load("Y003_allstateRawData_Train.Rdata")
         smp <- all.train; rm(all.train, all.copy, cost.train, hist.train)
     }
 
@@ -52,7 +52,7 @@ for (n in 0:1) {
     ##------------------------------------------------------------------
     choice.idx     <- which(colnames(smp) == "ABCDEFG.T")
     cost.idx       <- which(colnames(smp) == "cost.s0")
-    rest.idx       <- which(colnames(smp) == "day.0")  ## <X> first variable past the choices
+    rest.idx       <- which(colnames(smp) == "state.AL")  ## <X> first variable past the choices
 
     ##------------------------------------------------------------------
     ## Loop over the time/choice combinations and load a separate panel
@@ -229,9 +229,9 @@ for (n in 0:1) {
     ## Write the full panel to an .Rdata file
     ##------------------------------------------------------------------
     if (n == 0) {
-        save(panel.list, file="X004_allstatePanelData_Test.Rdata")
+        save(panel.list, file="Y004_allstatePanelData_Test.Rdata")
     } else {
-        save(panel.list, file="X004_allstatePanelData_Train.Rdata")
+        save(panel.list, file="Y004_allstatePanelData_Train.Rdata")
     }
 
     ##------------------------------------------------------------------
@@ -242,9 +242,9 @@ for (n in 0:1) {
     for (i in 1:length(panel.names)) {
         tmp.panel       <- panel.names[i]
         if (n == 0) {
-            tmp.filename    <- paste("./panels/X004_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
+            tmp.filename    <- paste("./panels/Y004_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
         } else {
-            tmp.filename    <- paste("./panels/X004_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
+            tmp.filename    <- paste("./panels/Y004_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
         }
         tmp.object      <- panel.list[[tmp.panel]]
         save(tmp.object, file=tmp.filename)

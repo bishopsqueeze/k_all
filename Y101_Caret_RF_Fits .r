@@ -23,8 +23,8 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
-DO_PARAMETER_SWEEP  <- TRUE
-DO_HOLD_OUT_SAMPLE  <- FALSE
+DO_PARAMETER_SWEEP  <- FALSE
+DO_HOLD_OUT_SAMPLE  <- TRUE
 DO_FINAL_FIT        <- FALSE
 
 ##------------------------------------------------------------------
@@ -42,16 +42,16 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 
 ## load the training data
-panel.files     <- dir("./panels")[(grep("X005_allstatePanelData_Train", dir("./panels")))]
+panel.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Train", dir("./panels")))]
 panel.num       <- length(panel.files)
 
 ## load the test data
-test.files     <- dir("./panels")[(grep("X005_allstatePanelData_Test", dir("./panels")))]
+test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./panels")))]
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 10:10) {
+for (i in 2:11) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -75,7 +75,6 @@ for (i in 10:10) {
     
     ## define the groups to test
     groups <- c("A","B","C","D","E","F","G")
-    #groups <- c("CG")
     
     ##------------------------------------------------------------------
     ## Loop over each (assumed) independent grouping
@@ -89,7 +88,7 @@ for (i in 10:10) {
         
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_REPCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".rf_CaretFit_AllSample_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -119,6 +118,8 @@ for (i in 10:10) {
                             paste(groups,"T",sep=""),
                             ## remove terminal
                             paste(LETTERS[1:7],"T",sep=""),
+                            ## remove plans
+                            colnames(tmp.data)[grep("^ABCDEFG.", colnames(tmp.data))],
                             ## remove all of the .u variables
                             colnames(tmp.data)[grep(".u$", colnames(tmp.data))],
                             ## remove the day-change indicator (can be toggled at last shopping_pt)
@@ -165,8 +166,10 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## remove variables with exactly zero variance
         ##------------------------------------------------------------------
-        zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
-        tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
+        #if ( !is.na(zeroDescr) ) {
+        #    tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #}
 
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
@@ -185,10 +188,10 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## check for linearly-related variables
         ##------------------------------------------------------------------
-        comboDescr      <- findLinearCombos(tmpDescr)
-        comboVars       <- colnames(tmpDescr)[comboDescr$remove]
-        comboVars       <- comboVars[ -grep("[A-G][0-9].[0-9]", comboVars) ]
-        tmpDescr        <- tmpDescr[, -comboDescr$remove]
+        #comboDescr      <- findLinearCombos(tmpDescr)
+        #comboVars       <- colnames(tmpDescr)[comboDescr$remove]
+        #comboVars       <- comboVars[ -grep("[A-G][0-9]", comboVars) ]
+        #tmpDescr        <- tmpDescr[, -comboDescr$remove]
         
         ##******************************************************************
         ## Define the samples to be used since there is a danger that
@@ -225,17 +228,16 @@ for (i in 10:10) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            logit.iter <- c(1000)
+            ##
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_LogitBoost_Fit_Sweep.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for a hold-out sample
         ##------------------------------------------------------------------
         } else if (DO_HOLD_OUT_SAMPLE) {
             
-  
             set.seed(88888888)
             numObs      <- nrow(tmpDescr)
             holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
@@ -248,10 +250,10 @@ for (i in 10:10) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            logit.iter <- c(1000)
+            ##logit.iter <- c(1000)
 
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_LogitBoost_Fit_HoldOut.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for the final fit
@@ -266,19 +268,16 @@ for (i in 10:10) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            if (i <= 12) {
-                logit.iter <- c(1000)
-            }
+            ##
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_LogitBoost_Fit_Final.Rdata",sep="")
-
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
         }
 
         ##------------------------------------------------------------------
         ## define the fit grid
         ##------------------------------------------------------------------
-        logitGrid <- expand.grid(.nIter = logit.iter)
+        ##
 
         ##------------------------------------------------------------------
         ## define the test dataset
@@ -293,13 +292,6 @@ for (i in 10:10) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
         
-        ##------------------------------------------------------------------
-        ## translate datasets into matrices
-        ##------------------------------------------------------------------
-        tmpDescr    <- as.matrix(tmpDescr)
-        testDescr   <- as.matrix(testDescr)
-        
-        
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
         ##******************************************************************
@@ -307,16 +299,11 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## k-fold cross-validation
         ##------------------------------------------------------------------
-        if ( !DO_FINAL_FIT ) {
+        if ( DO_PARAMETER_SWEEP ) {
             
-            num.cv      <- 5
-            num.repeat  <- 5
+            num.cv      <- 4
+            num.repeat  <- 1
             num.total   <- num.cv * num.repeat
-            
-            set.seed(1234)
-            seeds                               <- vector(mode = "list", length = (num.total + 1))
-            for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, nrow(gbmGrid))
-            seeds[[num.total+1]]                <- sample.int(1000, 1)
             
             ## test of repeated CV for G-class
             fitControl <- trainControl(
@@ -325,6 +312,21 @@ for (i in 10:10) {
                                 repeats=num.repeat,
                                 seeds=seeds)
             
+        ##------------------------------------------------------------------
+        ## final fit
+        ##------------------------------------------------------------------
+        } else if ( DO_HOLD_OUT_SAMPLE ) {
+     
+             num.cv      <- 5
+             num.repeat  <- 3
+             num.total   <- num.cv * num.repeat
+             
+             ## test of repeated CV for G-class
+             fitControl <- trainControl(
+                                 method="repeatedcv",
+                                 number=num.cv,
+                                 repeats=num.repeat)
+
         ##------------------------------------------------------------------
         ## final fit
         ##------------------------------------------------------------------
@@ -339,10 +341,11 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
-                                method="LogitBoost",
+                                method="rf",
                                 trControl=fitControl,
                                 verbose=FALSE,
-                                tuneGrid=logitGrid))
+                                metric="Kappa",
+                                tuneGrid=expand.grid(mtry=20)))
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits

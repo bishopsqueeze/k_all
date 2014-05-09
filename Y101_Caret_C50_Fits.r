@@ -23,8 +23,8 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
-DO_PARAMETER_SWEEP  <- TRUE
-DO_HOLD_OUT_SAMPLE  <- FALSE
+DO_PARAMETER_SWEEP  <- FALSE
+DO_HOLD_OUT_SAMPLE  <- TRUE
 DO_FINAL_FIT        <- FALSE
 
 ##------------------------------------------------------------------
@@ -42,16 +42,16 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 
 ## load the training data
-panel.files     <- dir("./panels")[(grep("X005_allstatePanelData_Train", dir("./panels")))]
+panel.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Train", dir("./panels")))]
 panel.num       <- length(panel.files)
 
 ## load the test data
-test.files     <- dir("./panels")[(grep("X005_allstatePanelData_Test", dir("./panels")))]
+test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./panels")))]
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 10:10) {
+for (i in 11:2) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -119,6 +119,8 @@ for (i in 10:10) {
                             paste(groups,"T",sep=""),
                             ## remove terminal
                             paste(LETTERS[1:7],"T",sep=""),
+                            ## remove plans
+                            colnames(tmp.data)[grep("^ABCDEFG.", colnames(tmp.data))],
                             ## remove all of the .u variables
                             colnames(tmp.data)[grep(".u$", colnames(tmp.data))],
                             ## remove the day-change indicator (can be toggled at last shopping_pt)
@@ -165,14 +167,14 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## remove variables with exactly zero variance
         ##------------------------------------------------------------------
-        zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
-        tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
+        #tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
 
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
         ##------------------------------------------------------------------
-        #nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
-        #tmpDescr  <- tmpDescr[ , -nzv]
+        nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
+        tmpDescr  <- tmpDescr[ , -nzv]
 
         ##------------------------------------------------------------------
         ## check for highly-correlated variables
@@ -239,7 +241,7 @@ for (i in 10:10) {
   
             set.seed(1234)
             numObs      <- nrow(tmpDescr)
-            holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
+            holdSmp     <- sample.int(nrow(tmpDescr), round(0.20*nrow(tmpDescr)))   ## 10% hold-out
 
             holdClass   <- droplevels(tmpClass[holdSmp])
             holdDescr   <- tmpDescr[holdSmp, ]
@@ -249,9 +251,12 @@ for (i in 10:10) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            c50.trials  <- c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90)
-            c50.winnow  <- c(FALSE)
-            c50.model   <- c("rules")
+            if (i <= 12) {
+                c50.trials  <- c(1)
+                c50.winnow  <- c(FALSE)
+                c50.model   <- c("rules")
+            }
+
 
             ## output file
             out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_HoldOut.Rdata",sep="")
@@ -270,7 +275,7 @@ for (i in 10:10) {
             ## define the tuning parameters
             ##------------------------------------------------------------------
             if (i <= 12) {
-                c50.trials  <- c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90)
+                c50.trials  <- c(1, 150)
                 c50.winnow  <- c(FALSE)
                 c50.model   <- c("rules")
             }
@@ -283,7 +288,7 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## define the fit grid
         ##------------------------------------------------------------------
-        c50Grid <- expand.grid(.trials=c50.trials, .model=c50.model, .winnow=c50.winnow)
+        c50Grid <- expand.grid(trials=c50.trials, model=c50.model, winnow=c50.winnow)
 
         ##------------------------------------------------------------------
         ## define the test dataset
@@ -301,8 +306,8 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## translate datasets into matrices
         ##------------------------------------------------------------------
-        tmpDescr    <- as.matrix(tmpDescr)
-        testDescr   <- as.matrix(testDescr)
+        #tmpDescr    <- as.matrix(tmpDescr)
+        #testDescr   <- as.matrix(testDescr)
         
         
         ##******************************************************************
@@ -312,24 +317,46 @@ for (i in 10:10) {
         ##------------------------------------------------------------------
         ## k-fold cross-validation
         ##------------------------------------------------------------------
-        if ( !DO_FINAL_FIT ) {
+        if ( DO_PARAMETER_SWEEP ) {
             
             num.cv      <- 5
             num.repeat  <- 5
             num.total   <- num.cv * num.repeat
-num.tune    <- 10
+            num.tune    <- 10
             
             set.seed(1234)
             seeds                               <- vector(mode = "list", length = (num.total + 1))
-for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, 10)
+            for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, 3*nrow(c50Grid))
             seeds[[num.total+1]]                <- sample.int(1000, 1)
             
             ## test of repeated CV for G-class
             fitControl <- trainControl(
                                 method="repeatedcv",
                                 number=num.cv,
-                                repeats=num.repeat,
-                                seeds=seeds)
+                                repeats=num.repeat)
+                                
+        ##------------------------------------------------------------------
+        ## hold-out
+        ##------------------------------------------------------------------
+        } else if (DO_HOLD_OUT_SAMPLE) {
+ 
+             num.cv      <- 10
+             num.repeat  <- 5
+             num.total   <- num.cv * num.repeat
+             num.tune    <- 10
+             
+             set.seed(1234)
+             seeds                               <- vector(mode = "list", length = (num.total + 1))
+             for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, nrow(c50Grid))
+             seeds[[num.total+1]]                <- sample.int(1000, 1)
+             
+             ## test of repeated CV for G-class
+             fitControl <- trainControl(
+                             method="repeatedcv",
+                             number=num.cv,
+                             repeats=num.repeat)
+
+            ##fitControl <- trainControl(method="none")
             
         ##------------------------------------------------------------------
         ## final fit
@@ -343,11 +370,13 @@ for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, 10)
         ##------------------------------------------------------------------
         ## Do the fit
         ##------------------------------------------------------------------
+        ## tuneGrid hits some strange limit
         tmp.fit <- try(train(   x=tmpDescr,
                                 y=tmpClass,
                                 method="C5.0",
                                 trControl=fitControl,
-                                verbose=FALSE,
+                                verbose=TRUE,
+                                metric="Accuracy",
                                 tuneGrid=c50Grid))
         
         ##------------------------------------------------------------------

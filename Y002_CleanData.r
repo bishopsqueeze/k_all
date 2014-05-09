@@ -80,11 +80,11 @@ all.bl <- all.bl[!is.na(all.bl) & (all.bl>0)]
     ##nzv <- nearZeroVar(all.data)
 
     ## estimate Box-Cox transformations for numeric variables
-    preProc <- preProcess(all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost")], method=c("BoxCox"))
-    all.data[,c("age_youngest.bc", "age_oldest.bc", "age_ratio.bc", "cost.bc")] <- predict(preProc, all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost")])
+    preProc <- preProcess(all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost", "car_age")], method=c("BoxCox"))
+    all.data[,c("age_youngest.bc", "age_oldest.bc", "age_ratio.bc", "cost.bc", "car_age.bc")] <- predict(preProc, all.data[,c("age_youngest", "age_oldest", "age_ratio", "cost", "car_age")])
 
     ## override the car_age.bc xform (as there was no xform applied)
-    all.data$car_age.bc <- log10(all.data$car_age + 1)
+    ##all.data$car_age.bc <- log10(all.data$car_age + 1)
 
 ##------------------------------------------------------------------
 ## Assign state factors a numeric code
@@ -192,19 +192,19 @@ tmp.res <- foreach(i=1:7, .combine='cbind') %dopar% {
 all.copy[, paste("n",LETTERS[1:7],sep="")] <- tmp.res
 
 ## identify cases where "updates"/"changes" (per customer) occur
-all.copy$day.u               <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$group_size.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$homeowner.u         <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$car_age.u           <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$age_oldest.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$age_youngest.u      <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$married_couple.u    <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$day.u               <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$day, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$group_size.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$group_size, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$homeowner.u         <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$homeowner, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$car_age.u           <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$car_age, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$age_oldest.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$age_oldest, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$age_youngest.u      <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$age_youngest, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$married_couple.u    <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$married_couple, all.copy$customer_ID, numUnique))) > 1, 1, 0))
 ## use scrubbed values for these variables
-all.copy$car_value.u         <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$car_value.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$location.u          <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$location.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$C_previous.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$C_previous.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$duration_previous.u <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$duration_previous.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
-all.copy$risk_factor.u       <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$risk_factor.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$car_value.u         <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$car_value.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$location.u          <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$location.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$C_previous.u        <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$C_previous.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$duration_previous.u <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$duration_previous.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
+#all.copy$risk_factor.u       <- as.integer(ifelse(as.vector(unlist(tapply(all.copy$risk_factor.r, all.copy$customer_ID, numUnique))) > 1, 1, 0))
 
 ##------------------------------------------------------------------
 ## Re-code variables with missings
@@ -223,9 +223,9 @@ all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 9
 market.tbl <- table(all.copy$location.r[ which(all.copy$location.r != 99999) ])
 market.cum <- cumsum(sort(market.tbl))/sum(market.tbl)
 
-## split the locations into deciles
+## split the locations into twentieths
 market.list <- list()
-market.seq  <- seq(0,1,0.1)
+market.seq  <- seq(0, 1, 0.05)
 for (i in 2:length(market.seq)) {
     if ( i == 2 ) {
         market.list[[i-1]]  <- names(market.cum)[ (market.cum <= market.seq[i]) ]
@@ -249,8 +249,23 @@ all.copy$loc <- as.factor(tmp.fac)
 
 
 ##------------------------------------------------------------------
-## <X> Normalize variables at a later stage
+## <Y> Test Box-Cox on the time varibales
 ##------------------------------------------------------------------
+## no effect
+#preProc.v2 <- preProcess(all.copy[,c("dayfrac.diff", "dayfrac.cum")], method=c("BoxCox"))
+#all.copy[,c("dayfrac.diff.bc", "dayfrac.cum.bc")] <- predict(preProc.v2, all.copy[,c("dayfrac.diff", "dayfrac.cum")])
+
+##------------------------------------------------------------------
+## <Y> Translate n[A-G] vectors into binary; then drop
+##------------------------------------------------------------------
+all.copy$uA <- as.factor(ifelse(all.copy$nA == 0, 0, 1));  all.copy$nA <- NULL
+all.copy$uB <- as.factor(ifelse(all.copy$nB == 0, 0, 1));  all.copy$nB <- NULL
+all.copy$uC <- as.factor(ifelse(all.copy$nC == 0, 0, 1));  all.copy$nC <- NULL
+all.copy$uD <- as.factor(ifelse(all.copy$nD == 0, 0, 1));  all.copy$nD <- NULL
+all.copy$uE <- as.factor(ifelse(all.copy$nE == 0, 0, 1));  all.copy$nE <- NULL
+all.copy$uF <- as.factor(ifelse(all.copy$nF == 0, 0, 1));  all.copy$nF <- NULL
+all.copy$uG <- as.factor(ifelse(all.copy$nG == 0, 0, 1));  all.copy$nG <- NULL
+
 
 ##------------------------------------------------------------------
 ## <X> Drop the replaced variables
@@ -303,7 +318,7 @@ all.copy.orig   <- all.copy
 ##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.na, all.bl, all.copy, all.copy.orig, file="X002_allstateRawData.Rdata")
+save(all.na, all.bl, all.copy, all.copy.orig, file="Y002_allstateRawData.Rdata")
 
 
 

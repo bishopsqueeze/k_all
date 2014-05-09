@@ -24,8 +24,8 @@ rm(list=ls())
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
 DO_PARAMETER_SWEEP  <- FALSE
-DO_HOLD_OUT_SAMPLE  <- FALSE
-DO_FINAL_FIT        <- TRUE
+DO_HOLD_OUT_SAMPLE  <- TRUE
+DO_FINAL_FIT        <- FALSE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -42,16 +42,16 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 
 ## load the training data
-panel.files     <- dir("./panels")[(grep("X005_allstatePanelData_Train", dir("./panels")))]
+panel.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Train", dir("./panels")))]
 panel.num       <- length(panel.files)
 
 ## load the test data
-test.files     <- dir("./panels")[(grep("X005_allstatePanelData_Test", dir("./panels")))]
+test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./panels")))]
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:2) {
+for (i in 2:11) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -74,14 +74,13 @@ for (i in 11:2) {
     tmp.len     <- tmp.object$len
     
     ## define the groups to test
-    #groups <- c("A","B","C","D","E","F","G")
-    groups <- c("CG")
+    groups <- c("A","B","C","D","E","F","G")
     
     ##------------------------------------------------------------------
     ## Loop over each (assumed) independent grouping
     ##------------------------------------------------------------------
-    for (j in 1:length(groups)) {
-    #for (j in 7:7) {
+    ##for (j in 1:length(groups)) {
+    for (j in 7:7) {
         
         ## report status and clean the fit
         cat("Response Variable ... ", groups[j], "\n")
@@ -119,6 +118,8 @@ for (i in 11:2) {
                             paste(groups,"T",sep=""),
                             ## remove terminal
                             paste(LETTERS[1:7],"T",sep=""),
+                            ## remove plans
+                            colnames(tmp.data)[grep("^ABCDEFG.", colnames(tmp.data))],
                             ## remove all of the .u variables
                             colnames(tmp.data)[grep(".u$", colnames(tmp.data))],
                             ## remove the day-change indicator (can be toggled at last shopping_pt)
@@ -165,8 +166,8 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         ## remove variables with exactly zero variance
         ##------------------------------------------------------------------
-        zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
-        tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
+        #tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
 
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
@@ -211,7 +212,7 @@ for (i in 11:2) {
             } else {
               reg.p   <- 1
             }
-            set.seed(1234)
+            set.seed(4321)
             reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
             
             ##------------------------------------------------------------------
@@ -225,7 +226,7 @@ for (i in 11:2) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            gbm.d <- c(7)
+            gbm.d <- c(9)
             gbm.n <- c(250)
             
             ## output file
@@ -236,7 +237,7 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         } else if (DO_HOLD_OUT_SAMPLE) {
   
-            set.seed(1234)
+            set.seed(88888888)
             numObs      <- nrow(tmpDescr)
             holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
 
@@ -322,13 +323,6 @@ for (i in 11:2) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
         
-        ##------------------------------------------------------------------
-        ## translate datasets into matrices
-        ##------------------------------------------------------------------
-        tmpDescr    <- as.matrix(tmpDescr)
-        testDescr   <- as.matrix(testDescr)
-        
-        
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
         ##******************************************************************
@@ -336,27 +330,37 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         ## k-fold cross-validation
         ##------------------------------------------------------------------
-        if ( !DO_FINAL_FIT ) {
+        if ( DO_PARAMETER_SWEEP ) {
             
-            num.cv      <- 5
-            num.repeat  <- 5
+            num.cv      <- 4
+            num.repeat  <- 1
             num.total   <- num.cv * num.repeat
-            
-            set.seed(1234)
-            seeds                               <- vector(mode = "list", length = (num.total + 1))
-            for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, nrow(gbmGrid))
-            seeds[[num.total+1]]                <- sample.int(1000, 1)
             
             ## test of repeated CV for G-class
             fitControl <- trainControl(
-                                method="repeatedcv",
-                                number=num.cv,
-                                repeats=num.repeat,
-                                seeds=seeds)
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat,
+            seeds=seeds)
             
-        ##------------------------------------------------------------------
-        ## final fit
-        ##------------------------------------------------------------------
+            ##------------------------------------------------------------------
+            ## final fit
+            ##------------------------------------------------------------------
+        } else if ( DO_HOLD_OUT_SAMPLE ) {
+            
+            num.cv      <- 5
+            num.repeat  <- 3
+            num.total   <- num.cv * num.repeat
+            
+            ## test of repeated CV for G-class
+            fitControl <- trainControl(
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat)
+            
+            ##------------------------------------------------------------------
+            ## final fit
+            ##------------------------------------------------------------------
         } else {
             
             fitControl <- trainControl(method="none")
@@ -371,7 +375,8 @@ for (i in 11:2) {
                                 method="gbm",
                                 trControl=fitControl,
                                 verbose=FALSE,
-                                tuneGrid=gbmGrid))
+                                metric="Kappa",
+                                tuneGrid=gbmGrid)
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
