@@ -348,8 +348,8 @@ for (i in 2:11) {
             ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
             
-            num.cv      <- 5
-            num.repeat  <- 3
+            num.cv      <- 10
+            num.repeat  <- 1
             num.total   <- num.cv * num.repeat
             
             ## test of repeated CV for G-class
@@ -376,7 +376,7 @@ for (i in 2:11) {
                                 trControl=fitControl,
                                 verbose=FALSE,
                                 metric="Kappa",
-                                tuneGrid=gbmGrid)
+                                tuneGrid=gbmGrid))
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
