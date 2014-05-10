@@ -395,7 +395,7 @@ for (i in 2:11) {
                                 trControl=fitControl,
                                 verbose=FALSE,
                                 metric="Kappa",
-                                tuneGrid=gbmGrid)
+                                tuneGrid=gbmGrid))
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
