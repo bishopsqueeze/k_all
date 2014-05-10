@@ -47,7 +47,7 @@ pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LET
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/rf_scored_Y015")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_X017")
 
 ##------------------------------------------------------------------
 ## Load fit data
@@ -219,8 +219,8 @@ gonly.ch        <- convert.magic(gbm_gonly.fin, "plan", "character")
 ##******************************************************************
 ## Step 5: Write submissions to file
 ##******************************************************************
-write.csv(lastquoted.fin,   file="Y015_lastquoted.csv", row.names=FALSE)
-write.csv(gbm_gonly.fin,    file="Y015_rf_gonly.csv", row.names=FALSE)
+write.csv(lastquoted.fin,   file="Y017_lastquoted.csv", row.names=FALSE)
+write.csv(gbm_gonly.fin,    file="Y017_gbm_gonly.csv", row.names=FALSE)
 #write.csv(gbm_conly.fin,    file="Y015_gbm_conly.csv", row.names=FALSE)
 #write.csv(gbm_cg.fin,       file="Y015_gbm_cg.csv", row.names=FALSE)
 #write.csv(gbm_gc.layer,     file="Y015_gbm_cg_layer.csv", row.names=FALSE)

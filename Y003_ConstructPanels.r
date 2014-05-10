@@ -35,7 +35,7 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load data
 ##------------------------------------------------------------------
-load("Y002_allstateRawData.Rdata"); rm("all.bl", "all.na", "all.copy.orig")
+load("Y002_allstateRawData.Rdata"); rm("all.bl", "all.na")
 
 ##******************************************************************
 ## Step 1:  Scale combined data (at each shopping_pt stage)

@@ -47,7 +47,7 @@ pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LET
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/rf_scored_Y015")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_X019")
 
 ##------------------------------------------------------------------
 ## Load fit data
@@ -88,6 +88,15 @@ if (nchar(tmp.group) > 1) {
         tmp.col                 <- paste(substr(tmp.group, j, j),".pred",sep="")
         pred.test[ , tmp.col ]  <- unlist(lapply( pred.test[ , c(paste(tmp.group,".pred",sep="")) ], substr, j, j))
     }
+}
+
+## deal with missings from exluded fits
+col.check   <- colnames(pred.test)[ grep(".pred", colnames(pred.test)) ]
+for (i in 1:length(col.check)) {
+    tmp.col     <- col.check[i]
+    tmp.lq      <- gsub(".pred", "", tmp.col)
+    bad.index   <- is.na(pred.test[, tmp.col])
+    pred.test[bad.index, tmp.col] <- pred.test[bad.index, tmp.lq]
 }
 
 ##******************************************************************
@@ -219,8 +228,8 @@ gonly.ch        <- convert.magic(gbm_gonly.fin, "plan", "character")
 ##******************************************************************
 ## Step 5: Write submissions to file
 ##******************************************************************
-write.csv(lastquoted.fin,   file="Y015_lastquoted.csv", row.names=FALSE)
-write.csv(gbm_gonly.fin,    file="Y015_rf_gonly.csv", row.names=FALSE)
+write.csv(lastquoted.fin,   file="Y019_lastquoted.csv", row.names=FALSE)
+write.csv(gbm_gonly.fin,    file="Y019_gbm_gonly.csv", row.names=FALSE)
 #write.csv(gbm_conly.fin,    file="Y015_gbm_conly.csv", row.names=FALSE)
 #write.csv(gbm_cg.fin,       file="Y015_gbm_cg.csv", row.names=FALSE)
 #write.csv(gbm_gc.layer,     file="Y015_gbm_cg_layer.csv", row.names=FALSE)

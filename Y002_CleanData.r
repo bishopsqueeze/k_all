@@ -213,6 +213,7 @@ all.copy$risk_factor.r[ which(all.copy$risk_factor.r == -9) ]               <- 9
 all.copy$C_previous.r[ which(all.copy$C_previous.r == -9) ]                 <- 99
 all.copy$duration_previous.r[ which(all.copy$duration_previous.r == -9) ]   <- 99
 all.copy$location.r[ which(all.copy$location.r == -9) ]                     <- 99999
+all.copy$car_value.r[ which(all.copy$car_value.r == "z") ]                   <- c("e")   ## median replace this outlier
 
 ##------------------------------------------------------------------
 ## <X> Treat location as a "market-size" variable based on the number
@@ -316,9 +317,14 @@ all.copy  <- convert.magic(all.copy, factor.list, rep("factor", length(factor.li
 all.copy.orig   <- all.copy
 
 ##------------------------------------------------------------------
+##drop superfluous levels
+##------------------------------------------------------------------
+all.copy    <- droplevels(all.copy)
+
+##------------------------------------------------------------------
 ## Write the data to an .Rdata file
 ##------------------------------------------------------------------
-save(all.na, all.bl, all.copy, all.copy.orig, file="Y002_allstateRawData.Rdata")
+save(all.na, all.bl, all.copy, file="Y002_allstateRawData.Rdata")
 
 
 

@@ -32,7 +32,11 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load the full set of consolidated train/test observations
 ##------------------------------------------------------------------
+<<<<<<< HEAD
 load("003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
+=======
+load("Y003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
+>>>>>>> FETCH_HEAD
 
 ##------------------------------------------------------------------
 ## Create a slim data frame
@@ -47,7 +51,11 @@ pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LET
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
+<<<<<<< HEAD
 setwd("/Users/alexstephens/Development/kaggle/allstate/data/rf_scored_Y016")
+=======
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/c50_scored_Y016")
+>>>>>>> FETCH_HEAD
 
 ##------------------------------------------------------------------
 ## Load fit data
@@ -220,10 +228,17 @@ gonly.ch        <- convert.magic(gbm_gonly.fin, "plan", "character")
 ## Step 5: Write submissions to file
 ##******************************************************************
 write.csv(lastquoted.fin,   file="Y016_lastquoted.csv", row.names=FALSE)
+<<<<<<< HEAD
 write.csv(gbm_gonly.fin,    file="Y016_gbm_gonly.csv", row.names=FALSE)
 #write.csv(gbm_conly.fin,    file="Y016_gbm_conly.csv", row.names=FALSE)
 #write.csv(gbm_cg.fin,       file="Y016_gbm_cg.csv", row.names=FALSE)
 #write.csv(gbm_gc.layer,     file="Y016_gbm_cg_layer.csv", row.names=FALSE)
+=======
+write.csv(gbm_gonly.fin,    file="Y016_c50_gonly.csv", row.names=FALSE)
+#write.csv(gbm_conly.fin,    file="Y015_gbm_conly.csv", row.names=FALSE)
+#write.csv(gbm_cg.fin,       file="Y015_gbm_cg.csv", row.names=FALSE)
+#write.csv(gbm_gc.layer,     file="Y015_gbm_cg_layer.csv", row.names=FALSE)
+>>>>>>> FETCH_HEAD
 #write.csv(gbm_gb,           file="X011_gbm_gb.csv", row.names=FALSE)
 #write.csv(gbm_ge,           file="X011_gbm_ge.csv", row.names=FALSE)
 #write.csv(gbm_gf,           file="X011_gbm_gf.csv", row.names=FALSE)
