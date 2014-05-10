@@ -24,8 +24,8 @@ rm(list=ls())
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
 DO_PARAMETER_SWEEP  <- FALSE
-DO_HOLD_OUT_SAMPLE  <- TRUE
-DO_FINAL_FIT        <- FALSE
+DO_HOLD_OUT_SAMPLE  <- FALSE
+DO_FINAL_FIT        <- TRUE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -51,7 +51,7 @@ test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./pa
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 2:11) {
+for (i in 6:2) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -292,6 +292,27 @@ for (i in 2:11) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
         
+        
+        ##------------------------------------------------------------------
+        ## <CRUDE> remove columns with factor mismatches
+        ##------------------------------------------------------------------
+        fac.col <- which(unlist(lapply(tmpDescr, class)) == "factor")
+        num.fac <- length(fac.col)
+        bad.col <- c()
+        
+        for (i in 1:num.fac) {
+            if (nlevels(tmpDescr[, fac.col[i]]) != nlevels(testDescr[, fac.col[i]])) {
+                cat("mismatch =", colnames(tmpDescr)[fac.col[i]], "\n")
+                bad.col <- c(bad.col, fac.col[i])
+            }
+            
+        }
+        if (!is.null(bad.col)) {
+            tmpDescr    <- tmpDescr[ ,-bad.col]
+            testDescr   <- testDescr[ ,-bad.col]
+        }
+        
+        
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
         ##******************************************************************
@@ -317,8 +338,8 @@ for (i in 2:11) {
         ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
      
-             num.cv      <- 5
-             num.repeat  <- 3
+             num.cv      <- 10
+             num.repeat  <- 1
              num.total   <- num.cv * num.repeat
              
              ## test of repeated CV for G-class
@@ -359,10 +380,6 @@ for (i in 2:11) {
         
     }
 }
-
-
-
-
 
 
 

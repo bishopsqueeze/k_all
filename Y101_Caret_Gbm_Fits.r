@@ -24,8 +24,8 @@ rm(list=ls())
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
 DO_PARAMETER_SWEEP  <- FALSE
-DO_HOLD_OUT_SAMPLE  <- TRUE
-DO_FINAL_FIT        <- FALSE
+DO_HOLD_OUT_SAMPLE  <- FALSE
+DO_FINAL_FIT        <- TRUE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -322,7 +322,26 @@ for (i in 2:11) {
         if (length(misMatchCols) > 0) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
-        
+       
+        ##------------------------------------------------------------------
+        ## <CRUDE> remove columns with factor mismatches
+        ##------------------------------------------------------------------
+        fac.col <- which(unlist(lapply(tmpDescr, class)) == "factor")
+        num.fac <- length(fac.col)
+        bad.col <- c()
+
+        for (i in 1:num.fac) {
+           if (nlevels(tmpDescr[, fac.col[i]]) != nlevels(testDescr[, fac.col[i]])) {
+               cat("mismatch =", colnames(tmpDescr)[fac.col[i]], "\n")
+               bad.col <- c(bad.col, fac.col[i])
+           }
+           
+        }
+        if (!is.null(bad.col)) {
+           tmpDescr    <- tmpDescr[ ,-bad.col]
+           testDescr   <- testDescr[ ,-bad.col]
+        }
+
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
         ##******************************************************************

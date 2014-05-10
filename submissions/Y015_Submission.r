@@ -32,7 +32,7 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load the full set of consolidated train/test observations
 ##------------------------------------------------------------------
-load("003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
+load("Y003_allstateRawData.Rdata"); rm(all.copy, cost.test, cost.train, hist.test, hist.train)
 
 ##------------------------------------------------------------------
 ## Create a slim data frame
@@ -47,7 +47,7 @@ pred.test   <- all.test[ , c("customer_ID","shopping_pt","record_type","key",LET
 ##------------------------------------------------------------------
 ## Set the working directory
 ##------------------------------------------------------------------
-setwd("/Users/alexstephens/Development/kaggle/allstate/data/c50_scored_Y015")
+setwd("/Users/alexstephens/Development/kaggle/allstate/data/rf_scored_Y015")
 
 ##------------------------------------------------------------------
 ## Load fit data
@@ -220,7 +220,7 @@ gonly.ch        <- convert.magic(gbm_gonly.fin, "plan", "character")
 ## Step 5: Write submissions to file
 ##******************************************************************
 write.csv(lastquoted.fin,   file="Y015_lastquoted.csv", row.names=FALSE)
-write.csv(c50_gonly.fin,    file="Y015_gbm_gonly.csv", row.names=FALSE)
+write.csv(gbm_gonly.fin,    file="Y015_rf_gonly.csv", row.names=FALSE)
 #write.csv(gbm_conly.fin,    file="Y015_gbm_conly.csv", row.names=FALSE)
 #write.csv(gbm_cg.fin,       file="Y015_gbm_cg.csv", row.names=FALSE)
 #write.csv(gbm_gc.layer,     file="Y015_gbm_cg_layer.csv", row.names=FALSE)

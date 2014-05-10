@@ -24,8 +24,8 @@ rm(list=ls())
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
 DO_PARAMETER_SWEEP  <- FALSE
-DO_HOLD_OUT_SAMPLE  <- TRUE
-DO_FINAL_FIT        <- FALSE
+DO_HOLD_OUT_SAMPLE  <- FALSE
+DO_FINAL_FIT        <- TRUE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -75,7 +75,6 @@ for (i in 11:2) {
     
     ## define the groups to test
     groups <- c("A","B","C","D","E","F","G")
-    #groups <- c("CG")
     
     ##------------------------------------------------------------------
     ## Loop over each (assumed) independent grouping
@@ -89,7 +88,7 @@ for (i in 11:2) {
         
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".gbmCaretFit_AllSample_REPCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".c50CaretFit_AllSample_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -173,8 +172,8 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
         ##------------------------------------------------------------------
-        nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
-        tmpDescr  <- tmpDescr[ , -nzv]
+        #nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
+        #tmpDescr  <- tmpDescr[ , -nzv]
 
         ##------------------------------------------------------------------
         ## check for highly-correlated variables
@@ -275,7 +274,7 @@ for (i in 11:2) {
             ## define the tuning parameters
             ##------------------------------------------------------------------
             if (i <= 12) {
-                c50.trials  <- c(1, 150)
+                c50.trials  <- c(1)
                 c50.winnow  <- c(FALSE)
                 c50.model   <- c("rules")
             }
@@ -304,10 +303,23 @@ for (i in 11:2) {
         }
         
         ##------------------------------------------------------------------
-        ## translate datasets into matrices
+        ## <CRUDE> remove columns with factor mismatches
         ##------------------------------------------------------------------
-        #tmpDescr    <- as.matrix(tmpDescr)
-        #testDescr   <- as.matrix(testDescr)
+        fac.col <- which(unlist(lapply(tmpDescr, class)) == "factor")
+        num.fac <- length(fac.col)
+        bad.col <- c()
+        
+        for (i in 1:num.fac) {
+            if (nlevels(tmpDescr[, fac.col[i]]) != nlevels(testDescr[, fac.col[i]])) {
+                cat("mismatch =", colnames(tmpDescr)[fac.col[i]], "\n")
+                bad.col <- c(bad.col, fac.col[i])
+            }
+            
+        }
+        if (!is.null(bad.col)) {
+            tmpDescr    <- tmpDescr[ ,-bad.col]
+            testDescr   <- testDescr[ ,-bad.col]
+        }
         
         
         ##******************************************************************
