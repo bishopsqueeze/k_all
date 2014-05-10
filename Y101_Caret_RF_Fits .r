@@ -51,7 +51,7 @@ test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./pa
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 6:2) {
+for (i in 2:11) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -133,6 +133,11 @@ for (i in 6:2) {
         drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         drop.groups  <- c(drop.groups, groups[j])
         
+        ##------------------------------------------------------------------
+        ## remove the d[A-G] parameters
+        ##------------------------------------------------------------------
+        drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
+       
         ##------------------------------------------------------------------
         ## Drop the current group levels
         ##------------------------------------------------------------------
@@ -230,8 +235,9 @@ for (i in 6:2) {
             ##------------------------------------------------------------------
             ##
             
+            
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Sweep.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for a hold-out sample
@@ -251,9 +257,10 @@ for (i in 6:2) {
             ## define the tuning parameters
             ##------------------------------------------------------------------
             ##logit.iter <- c(1000)
+            
 
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_HoldOut.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for the final fit
@@ -300,18 +307,44 @@ for (i in 6:2) {
         num.fac <- length(fac.col)
         bad.col <- c()
         
-        for (i in 1:num.fac) {
-            if (nlevels(tmpDescr[, fac.col[i]]) != nlevels(testDescr[, fac.col[i]])) {
-                cat("mismatch =", colnames(tmpDescr)[fac.col[i]], "\n")
-                bad.col <- c(bad.col, fac.col[i])
+        ## loop over all factors & search for bad columns
+        for (k in 1:num.fac) {
+            ## identify variables with mismatches
+            if (nlevels(tmpDescr[, fac.col[k]]) != nlevels(testDescr[, fac.col[k]])) {
+                cat("mismatch =", colnames(tmpDescr)[fac.col[k]], "\n")
+                bad.col <- c(bad.col, fac.col[k])
             }
-            
-        }
-        if (!is.null(bad.col)) {
-            tmpDescr    <- tmpDescr[ ,-bad.col]
-            testDescr   <- testDescr[ ,-bad.col]
         }
         
+        ## if there are bad columns, prune row from the training data that don't match
+        if (!is.null(bad.col)) {
+            for (k in 1:length(bad.col)) {
+                
+                ## identify the bad levels
+                bad.levels  <- levels(tmpDescr[, bad.col[k]])[which( !(levels(tmpDescr[, bad.col[k]]) %in% levels(testDescr[, bad.col[k]])) )]
+                
+                ## echo drops
+                cat("Pruning levels ... ", bad.levels, "from variable ...", colnames(tmpDescr)[bad.col[k]], "\n")
+                
+                ## remove the bad levels from the training data
+                tmpBads     <- which(tmpDescr[,bad.col[k]] %in% bad.levels)
+                tmpDescr    <- tmpDescr[ -tmpBads, ]
+                tmpClass    <- tmpClass[ -tmpBads ]
+                
+                ## do the same for the holdout data
+                if ( !is.null(holdDescr) ) {
+                    holdBads    <- which(holdDescr[,bad.col[k]] %in% bad.levels)
+                    holdDescr   <- holdDescr[ -holdBads, ]
+                    holdClass   <- holdClass[ -holdBads ]
+                    holdDescr   <- droplevels(holdDescr)
+                }
+                
+            }
+        }
+        tmpDescr    <- droplevels(tmpDescr)
+        testDescr   <- droplevels(testDescr)
+        #tmpDescr    <- tmpDescr[ ,-bad.col]
+        #testDescr   <- testDescr[ ,-bad.col]
         
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
@@ -322,32 +355,31 @@ for (i in 6:2) {
         ##------------------------------------------------------------------
         if ( DO_PARAMETER_SWEEP ) {
             
-            num.cv      <- 4
+            num.cv      <- 5
             num.repeat  <- 1
             num.total   <- num.cv * num.repeat
             
             ## test of repeated CV for G-class
             fitControl <- trainControl(
-                                method="repeatedcv",
-                                number=num.cv,
-                                repeats=num.repeat,
-                                seeds=seeds)
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat)
             
         ##------------------------------------------------------------------
-        ## final fit
+        ## hold-out sample
         ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
-     
-             num.cv      <- 10
-             num.repeat  <- 1
-             num.total   <- num.cv * num.repeat
-             
-             ## test of repeated CV for G-class
-             fitControl <- trainControl(
-                                 method="repeatedcv",
-                                 number=num.cv,
-                                 repeats=num.repeat)
-
+            
+            num.cv      <- 5
+            num.repeat  <- 1
+            num.total   <- num.cv * num.repeat
+            
+            ## test of repeated CV for G-class
+            fitControl <- trainControl(
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat)
+            
         ##------------------------------------------------------------------
         ## final fit
         ##------------------------------------------------------------------
@@ -356,17 +388,29 @@ for (i in 6:2) {
             fitControl <- trainControl(method="none")
             
         }
-        
+
         ##------------------------------------------------------------------
         ## Do the fit
         ##------------------------------------------------------------------
-        tmp.fit <- try(train(   x=tmpDescr,
-                                y=tmpClass,
-                                method="rf",
-                                trControl=fitControl,
-                                verbose=FALSE,
-                                metric="Kappa",
-                                tuneGrid=expand.grid(mtry=20)))
+        if ( DO_PARAMETER_SWEEP | DO_HOLD_OUT_SAMPLE ) {
+            tmp.fit <- try(train(   x=tmpDescr,
+                                    y=tmpClass,
+                                    method="rf",
+                                    trControl=fitControl,
+                                    verbose=FALSE,
+                                    metric="Accuracy",
+                                    tuneLength=10))
+            
+        } else {
+            tmp.fit <- try(train(   x=tmpDescr,
+                                    y=tmpClass,
+                                    method="rf",
+                                    trControl=fitControl,
+                                    verbose=FALSE,
+                                    metric="Accuracy",
+                                    tuneGrid=expand.grid(mtry=30)))
+        }
+ 
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits

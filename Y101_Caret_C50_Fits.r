@@ -23,9 +23,9 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
-DO_PARAMETER_SWEEP  <- FALSE
+DO_PARAMETER_SWEEP  <- TRUE
 DO_HOLD_OUT_SAMPLE  <- FALSE
-DO_FINAL_FIT        <- TRUE
+DO_FINAL_FIT        <- FALSE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -51,7 +51,7 @@ test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./pa
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:2) {
+for (i in 2:2) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -132,6 +132,11 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         drop.groups  <- groups[ -which(groups %in% groups[j]) ]
         drop.groups  <- c(drop.groups, groups[j])
+        
+        ##------------------------------------------------------------------
+        ## remove the d[A-G] parameters
+        ##------------------------------------------------------------------
+        drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
         
         ##------------------------------------------------------------------
         ## Drop the current group levels
@@ -309,17 +314,44 @@ for (i in 11:2) {
         num.fac <- length(fac.col)
         bad.col <- c()
         
-        for (i in 1:num.fac) {
-            if (nlevels(tmpDescr[, fac.col[i]]) != nlevels(testDescr[, fac.col[i]])) {
-                cat("mismatch =", colnames(tmpDescr)[fac.col[i]], "\n")
-                bad.col <- c(bad.col, fac.col[i])
+        ## loop over all factors & search for bad columns
+        for (k in 1:num.fac) {
+            ## identify variables with mismatches
+            if (nlevels(tmpDescr[, fac.col[k]]) != nlevels(testDescr[, fac.col[k]])) {
+                cat("mismatch =", colnames(tmpDescr)[fac.col[k]], "\n")
+                bad.col <- c(bad.col, fac.col[k])
             }
-            
         }
+        
+        ## if there are bad columns, prune row from the training data that don't match
         if (!is.null(bad.col)) {
-            tmpDescr    <- tmpDescr[ ,-bad.col]
-            testDescr   <- testDescr[ ,-bad.col]
+            for (k in 1:length(bad.col)) {
+                
+                ## identify the bad levels
+                bad.levels  <- levels(tmpDescr[, bad.col[k]])[which( !(levels(tmpDescr[, bad.col[k]]) %in% levels(testDescr[, bad.col[k]])) )]
+                
+                ## echo drops
+                cat("Pruning levels ... ", bad.levels, "from variable ...", colnames(tmpDescr)[bad.col[k]], "\n")
+                
+                ## remove the bad levels from the training data
+                tmpBads     <- which(tmpDescr[,bad.col[k]] %in% bad.levels)
+                tmpDescr    <- tmpDescr[ -tmpBads, ]
+                tmpClass    <- tmpClass[ -tmpBads ]
+                
+                ## do the same for the holdout data
+                if ( !is.null(holdDescr) ) {
+                    holdBads    <- which(holdDescr[,bad.col[k]] %in% bad.levels)
+                    holdDescr   <- holdDescr[ -holdBads, ]
+                    holdClass   <- holdClass[ -holdBads ]
+                    holdDescr   <- droplevels(holdDescr)
+                }
+                
+            }
         }
+        tmpDescr    <- droplevels(tmpDescr)
+        testDescr   <- droplevels(testDescr)
+        #tmpDescr    <- tmpDescr[ ,-bad.col]
+        #testDescr   <- testDescr[ ,-bad.col]
         
         
         ##******************************************************************
@@ -332,47 +364,33 @@ for (i in 11:2) {
         if ( DO_PARAMETER_SWEEP ) {
             
             num.cv      <- 5
-            num.repeat  <- 5
+            num.repeat  <- 1
             num.total   <- num.cv * num.repeat
-            num.tune    <- 10
-            
-            set.seed(1234)
-            seeds                               <- vector(mode = "list", length = (num.total + 1))
-            for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, 3*nrow(c50Grid))
-            seeds[[num.total+1]]                <- sample.int(1000, 1)
             
             ## test of repeated CV for G-class
             fitControl <- trainControl(
-                                method="repeatedcv",
-                                number=num.cv,
-                                repeats=num.repeat)
-                                
-        ##------------------------------------------------------------------
-        ## hold-out
-        ##------------------------------------------------------------------
-        } else if (DO_HOLD_OUT_SAMPLE) {
- 
-             num.cv      <- 10
-             num.repeat  <- 5
-             num.total   <- num.cv * num.repeat
-             num.tune    <- 10
-             
-             set.seed(1234)
-             seeds                               <- vector(mode = "list", length = (num.total + 1))
-             for(k in 1:num.total) seeds[[k]]    <- sample.int(1000, nrow(c50Grid))
-             seeds[[num.total+1]]                <- sample.int(1000, 1)
-             
-             ## test of repeated CV for G-class
-             fitControl <- trainControl(
-                             method="repeatedcv",
-                             number=num.cv,
-                             repeats=num.repeat)
-
-            ##fitControl <- trainControl(method="none")
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat)
             
-        ##------------------------------------------------------------------
-        ## final fit
-        ##------------------------------------------------------------------
+            ##------------------------------------------------------------------
+            ## hold-out sample
+            ##------------------------------------------------------------------
+        } else if ( DO_HOLD_OUT_SAMPLE ) {
+            
+            num.cv      <- 5
+            num.repeat  <- 1
+            num.total   <- num.cv * num.repeat
+            
+            ## test of repeated CV for G-class
+            fitControl <- trainControl(
+            method="repeatedcv",
+            number=num.cv,
+            repeats=num.repeat)
+            
+            ##------------------------------------------------------------------
+            ## final fit
+            ##------------------------------------------------------------------
         } else {
             
             fitControl <- trainControl(method="none")
@@ -382,14 +400,24 @@ for (i in 11:2) {
         ##------------------------------------------------------------------
         ## Do the fit
         ##------------------------------------------------------------------
-        ## tuneGrid hits some strange limit
-        tmp.fit <- try(train(   x=tmpDescr,
-                                y=tmpClass,
-                                method="C5.0",
-                                trControl=fitControl,
-                                verbose=TRUE,
-                                metric="Accuracy",
-                                tuneGrid=c50Grid))
+        if ( DO_PARAMETER_SWEEP | DO_HOLD_OUT_SAMPLE ) {
+            tmp.fit <- try(train(   x=tmpDescr,
+                                    y=tmpClass,
+                                    method="C5.0",
+                                    trControl=fitControl,
+                                    verbose=FALSE,
+                                    metric="Accuracy",
+                                    tuneLength=10))
+            
+        } else {
+            tmp.fit <- try(train(   x=tmpDescr,
+                                    y=tmpClass,
+                                    method="C5.0",
+                                    trControl=fitControl,
+                                    verbose=FALSE,
+                                    metric="Accuracy",
+                                    tuneGrid=c50Grid))
+        }
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
