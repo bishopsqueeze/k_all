@@ -79,13 +79,14 @@ g.X021  <- subSplit(s=X021.g)
 ##------------------------------------------------------------------
 
 ## match index
-match.index <- (g.S006$G == g.Y020$G)
+match.index <- ((g.S006$G == g.Y020$G) & (g.S006$G == g.X008$G) &
+                (lq$G != g.S006$G) & (lq$G != g.Y020$G) & (lq$G != g.X008$G))
 
+## This yielded the best fit to date
 ## combine
 #g.comb  <- data.frame(  s1=as.integer(g.S006$G),
 #                        s2=as.integer(g.X008$G),
 #                        s3=as.integer(g.Y020$G))
-
 ## estimate the median
 #g.med   <- as.character(apply(g.comb, 1, median))
 
@@ -104,7 +105,7 @@ sub     <- data.frame(
 ##------------------------------------------------------------------
 ## Write the file
 ##------------------------------------------------------------------
-write.csv(sub, file="Y022_S006.Y020.Eq_gonly.csv", row.names=FALSE)
+write.csv(sub, file="Y022_S006.EQ.Y020.EQ.X008.NE.LQ_gonly.csv", row.names=FALSE)
 
 
 

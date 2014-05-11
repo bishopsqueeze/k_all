@@ -125,7 +125,10 @@ for (i in 8:8) {
                             ## remove the day-change indicator (can be toggled at last shopping_pt)
                             c("day.u"),
                             ## <X> For this experiment,
-                            c("lq.ne"))
+                            c("lq.ne"),
+                            ## radical departure
+                            c("cost.s1","cost.s2","cost.s3","cost.s4","cost.s5","cost.s6","cost.s7","cost.s8","cost.s9","cost.s10","age_ratio.bcs")
+                            )
         
         ##------------------------------------------------------------------
         ## remove current single parameter
@@ -357,7 +360,7 @@ for (i in 8:8) {
         ##------------------------------------------------------------------
         if ( DO_PARAMETER_SWEEP ) {
             
-            num.cv      <- 5
+            num.cv      <- 4
             num.repeat  <- 1
             num.total   <- num.cv * num.repeat
             
@@ -372,7 +375,7 @@ for (i in 8:8) {
         ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
             
-            num.cv      <- 5
+            num.cv      <- 4
             num.repeat  <- 1
             num.total   <- num.cv * num.repeat
             
@@ -397,16 +400,16 @@ for (i in 8:8) {
         if ( DO_PARAMETER_SWEEP | DO_HOLD_OUT_SAMPLE ) {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="rda",
+                                    method="gbm",
                                     trControl=fitControl,
-                                    verbose=FALSE,
+                                    verbose=TRUE,
                                     metric="Accuracy",
                                     tuneLength=10))
             
         } else {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="rda",
+                                    method="ada",
                                     trControl=fitControl,
                                     verbose=FALSE,
                                     metric="Accuracy",
