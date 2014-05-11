@@ -32,10 +32,10 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 ## Load data (each should contain an object called "panel.list"
 ##------------------------------------------------------------------
-load("X004_allstatePanelData_Train.Rdata")
+load("Y004_allstatePanelData_Train.Rdata")
 train.list  <- panel.list; rm(panel.list)
 
-load("X004_allstatePanelData_Test.Rdata")
+load("Y004_allstatePanelData_Test.Rdata")
 test.list   <- panel.list; rm(panel.list)
 
 ##------------------------------------------------------------------
@@ -67,7 +67,9 @@ for (i in 2:11) {
     #}
 
     ## expand factors into a set of binary variables
-    cols.test     <- colnames(test.data)[c(grep("^[A-G][0-9]$", colnames(test.data)),
+    cols.test     <- colnames(test.data)[c(
+                                           which(colnames(test.data) %in% c("day", "group_size", "risk_factor.r", "C_previous.r", "car_value.r", "loc")),
+                                           grep("^[A-G][0-9]$", colnames(test.data)),
                                            grep("^[A-G]10$", colnames(test.data)),
                                            grep("^[A-G]11$", colnames(test.data)))] ## grep("[A-G][0]x[A-G][0]",colnames(test.data)))]
     
@@ -85,6 +87,11 @@ for (i in 2:11) {
 
     ## drop the custday key
     all.test$custday_key.u <- NULL
+    
+    ## convert factors to integer
+    fac.test    <- c( "homeowner", "married_couple", "uA", "uB", "uC", "uD", "uE", "uF", "uG")
+    all.test    <- convert.magic(all.test, fac.test, rep("character", length(fac.test)))
+    all.test    <- convert.magic(all.test, fac.test, rep("integer", length(fac.test)))
     
     ## remove the superfluous variables
     all.test    <- all.test[ , -grep("ABCDEFG", colnames(all.test)) ]
@@ -116,7 +123,9 @@ for (i in 2:11) {
     #}
 
     ## expand factors into a set of binary variables
-    cols.train     <- colnames(train.data)[c(grep("^[A-G][0-9]$", colnames(train.data)),
+    cols.train     <- colnames(train.data)[c(
+                                           which(colnames(train.data) %in% c("day", "group_size", "risk_factor.r", "C_previous.r", "car_value.r", "loc")),
+                                           grep("^[A-G][0-9]$", colnames(train.data)),
                                            grep("^[A-G]10$", colnames(train.data)),
                                            grep("^[A-G]11$", colnames(train.data)))]    ##grep("[A-G][0]x[A-G][0]",colnames(train.data))]
 
@@ -136,7 +145,12 @@ for (i in 2:11) {
     all.train$custday_key.u <- NULL
 
     ## <X> add targets for testing lq vs. non-lq
-    all.train$lq.ne <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
+    ##all.train$lq.ne <- 1*(as.character(all.train$ABCDEFG.T) != as.character(all.train$ABCDEFG.0))
+    
+    ## convert factors to integer
+    fac.train   <- c("homeowner", "married_couple", "uA", "uB", "uC", "uD", "uE", "uF", "uG")
+    all.train   <- convert.magic(all.train, fac.train, rep("character", length(fac.train)))
+    all.train   <- convert.magic(all.train, fac.train, rep("integer", length(fac.train)))
     
     ## remove the superfluous variables
     all.train    <- all.train[ , -grep("ABCDEFG", colnames(all.train)) ]
@@ -154,13 +168,13 @@ for (i in 2:11) {
 ## save the final test panels
 ##------------------------------------------------------------------
 panel.list  <- panel.test
-save(panel.list, file="X005_allstatePanelData_Test.Rdata")
+save(panel.list, file="Y005_allstatePanelData_Test.Rdata")
 
 ## Write individual panels to separate .Rdata files
 panel.names <- names(panel.list)
 for (i in 1:length(panel.names)) {
     tmp.panel       <- panel.names[i]
-    tmp.filename    <- paste("./panels/X005_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
+    tmp.filename    <- paste("./panels/Y005_allstatePanelData_Test.",tmp.panel,".Rdata",sep="")
     tmp.object      <- panel.list[[tmp.panel]]
     save(tmp.object, file=tmp.filename)
 }
@@ -170,17 +184,17 @@ rm(panel.list)
 ## save the final train panels
 ##------------------------------------------------------------------
 panel.list  <- panel.train
-save(panel.list, file="X005_allstatePanelData_Train.Rdata")
+save(panel.list, file="Y005_allstatePanelData_Train.Rdata")
 
 ## Write individual panels to separate .Rdata files
 panel.names <- names(panel.list)
 for (i in 1:length(panel.names)) {
     tmp.panel       <- panel.names[i]
-    tmp.filename    <- paste("./panels/X005_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
+    tmp.filename    <- paste("./panels/Y005_allstatePanelData_Train.",tmp.panel,".Rdata",sep="")
     tmp.object      <- panel.list[[tmp.panel]]
     save(tmp.object, file=tmp.filename)
 }
 
 ## save a mock dataset to SP_01 (to preserve consistency with previous scripts)
-save(tmp.object, file=paste("./panels/X005_allstatePanelData_Test.","SP_01",".Rdata",sep=""))
-save(tmp.object, file=paste("./panels/X005_allstatePanelData_Train.","SP_01",".Rdata",sep=""))
+save(tmp.object, file=paste("./panels/Y005_allstatePanelData_Test.","SP_01",".Rdata",sep=""))
+save(tmp.object, file=paste("./panels/Y005_allstatePanelData_Train.","SP_01",".Rdata",sep=""))

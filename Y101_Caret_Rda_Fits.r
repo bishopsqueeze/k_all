@@ -42,16 +42,16 @@ source("/Users/alexstephens/Development/kaggle/allstate/k_all/000_UtilityFunctio
 ##------------------------------------------------------------------
 
 ## load the training data
-panel.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Train", dir("./panels")))]
+panel.files     <- dir("./panels")[(grep("Y005_allstatePanelData_Train", dir("./panels")))]
 panel.num       <- length(panel.files)
 
 ## load the test data
-test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./panels")))]
+test.files     <- dir("./panels")[(grep("Y005_allstatePanelData_Test", dir("./panels")))]
 
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:3) {
+for (i in 8:8) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -88,7 +88,7 @@ for (i in 11:3) {
         
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".c50CaretFit_AllSample_REPCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".rf_CaretFit_AllSample_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -137,7 +137,7 @@ for (i in 11:3) {
         ## remove the d[A-G] parameters
         ##------------------------------------------------------------------
         drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
-        
+       
         ##------------------------------------------------------------------
         ## Drop the current group levels
         ##------------------------------------------------------------------
@@ -171,14 +171,16 @@ for (i in 11:3) {
         ##------------------------------------------------------------------
         ## remove variables with exactly zero variance
         ##------------------------------------------------------------------
-        #zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
-        #tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
+        if (length(zeroDescr) > 0) {
+            tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        }
 
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
         ##------------------------------------------------------------------
-        #nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
-        #tmpDescr  <- tmpDescr[ , -nzv]
+        nzv       <- nearZeroVar(tmpDescr, freqCut=99/1)
+        tmpDescr  <- tmpDescr[ , -nzv]
 
         ##------------------------------------------------------------------
         ## check for highly-correlated variables
@@ -191,10 +193,12 @@ for (i in 11:3) {
         ##------------------------------------------------------------------
         ## check for linearly-related variables
         ##------------------------------------------------------------------
-        #comboDescr      <- findLinearCombos(tmpDescr)
-        #comboVars       <- colnames(tmpDescr)[comboDescr$remove]
-        #comboVars       <- comboVars[ -grep("[A-G][0-9].[0-9]", comboVars) ]
-        #tmpDescr        <- tmpDescr[, -comboDescr$remove]
+        comboDescr      <- findLinearCombos(tmpDescr)
+        comboVars       <- colnames(tmpDescr)[comboDescr$remove]
+        comboVars       <- comboVars[ -grep("[A-G][0-9].[0-9]", comboVars) ]
+        if (length(comboDescr$remove) > 0) {
+            tmpDescr        <- tmpDescr[, -comboDescr$remove]
+        }
         
         ##******************************************************************
         ## Define the samples to be used since there is a danger that
@@ -211,13 +215,13 @@ for (i in 11:3) {
             ## the number of total samples to 10,000 ... but isolate the sample
             ## using stratified sampling on the classes
             ##------------------------------------------------------------------
-            max.reg <- 20000
+            max.reg <- 10000
             if ( length(tmpClass) > max.reg ) {
               reg.p   <- max.reg/length(tmpClass)
             } else {
               reg.p   <- 1
             }
-            set.seed(1234)
+            set.seed(88888888)
             reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
             
             ##------------------------------------------------------------------
@@ -231,21 +235,20 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            c50.trials  <- seq(50, 500, 50)
-            c50.winnow  <- c(FALSE)
-            c50.model   <- c("rules")
+            ##
+            
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Sweep.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Sweep.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for a hold-out sample
         ##------------------------------------------------------------------
         } else if (DO_HOLD_OUT_SAMPLE) {
-  
-            set.seed(1234)
+            
+            set.seed(88888888)
             numObs      <- nrow(tmpDescr)
-            holdSmp     <- sample.int(nrow(tmpDescr), round(0.20*nrow(tmpDescr)))   ## 10% hold-out
+            holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
 
             holdClass   <- droplevels(tmpClass[holdSmp])
             holdDescr   <- tmpDescr[holdSmp, ]
@@ -255,15 +258,11 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            if (i <= 12) {
-                c50.trials  <- c(1)
-                c50.winnow  <- c(FALSE)
-                c50.model   <- c("rules")
-            }
-
+            ##logit.iter <- c(1000)
+            
 
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_HoldOut.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_HoldOut.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for the final fit
@@ -278,21 +277,16 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            if (i <= 12) {
-                c50.trials  <- c(1)
-                c50.winnow  <- c(FALSE)
-                c50.model   <- c("rules")
-            }
+            ##
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Final.Rdata",sep="")
-
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
         }
 
         ##------------------------------------------------------------------
         ## define the fit grid
         ##------------------------------------------------------------------
-        c50Grid <- expand.grid(trials=c50.trials, model=c50.model, winnow=c50.winnow)
+        ##
 
         ##------------------------------------------------------------------
         ## define the test dataset
@@ -307,52 +301,52 @@ for (i in 11:3) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
         
+        
         ##------------------------------------------------------------------
         ## <CRUDE> remove columns with factor mismatches
         ##------------------------------------------------------------------
-        fac.col <- which(unlist(lapply(tmpDescr, class)) == "factor")
-        num.fac <- length(fac.col)
-        bad.col <- c()
+        #fac.col <- which(unlist(lapply(tmpDescr, class)) == "factor")
+        #num.fac <- length(fac.col)
+        #bad.col <- c()
         
         ## loop over all factors & search for bad columns
-        for (k in 1:num.fac) {
-            ## identify variables with mismatches
-            if (nlevels(tmpDescr[, fac.col[k]]) != nlevels(testDescr[, fac.col[k]])) {
-                cat("mismatch =", colnames(tmpDescr)[fac.col[k]], "\n")
-                bad.col <- c(bad.col, fac.col[k])
-            }
-        }
+        #for (k in 1:num.fac) {
+        #    ## identify variables with mismatches
+        #    if (nlevels(tmpDescr[, fac.col[k]]) != nlevels(testDescr[, fac.col[k]])) {
+        #        cat("mismatch =", colnames(tmpDescr)[fac.col[k]], "\n")
+        #        bad.col <- c(bad.col, fac.col[k])
+        #    }
+        #}
         
         ## if there are bad columns, prune row from the training data that don't match
-        if (!is.null(bad.col)) {
-            for (k in 1:length(bad.col)) {
-                
-                ## identify the bad levels
-                bad.levels  <- levels(tmpDescr[, bad.col[k]])[which( !(levels(tmpDescr[, bad.col[k]]) %in% levels(testDescr[, bad.col[k]])) )]
-                
-                ## echo drops
-                cat("Pruning levels ... ", bad.levels, "from variable ...", colnames(tmpDescr)[bad.col[k]], "\n")
-                
-                ## remove the bad levels from the training data
-                tmpBads     <- which(tmpDescr[,bad.col[k]] %in% bad.levels)
-                tmpDescr    <- tmpDescr[ -tmpBads, ]
-                tmpClass    <- tmpClass[ -tmpBads ]
-                
-                ## do the same for the holdout data
-                if ( !is.null(holdDescr) ) {
-                    holdBads    <- which(holdDescr[,bad.col[k]] %in% bad.levels)
-                    holdDescr   <- holdDescr[ -holdBads, ]
-                    holdClass   <- holdClass[ -holdBads ]
-                    holdDescr   <- droplevels(holdDescr)
-                }
-                
-            }
-        }
-        tmpDescr    <- droplevels(tmpDescr)
-        testDescr   <- droplevels(testDescr)
+        #if (!is.null(bad.col)) {
+        #    for (k in 1:length(bad.col)) {
+        #
+        #        ## identify the bad levels
+        #        bad.levels  <- levels(tmpDescr[, bad.col[k]])[which( !(levels(tmpDescr[, bad.col[k]]) %in% levels(testDescr[, bad.col[k]])) )]
+        #
+        #       ## echo drops
+        #        cat("Pruning levels ... ", bad.levels, "from variable ...", colnames(tmpDescr)[bad.col[k]], "\n")
+        #
+        #        ## remove the bad levels from the training data
+        #        tmpBads     <- which(tmpDescr[,bad.col[k]] %in% bad.levels)
+        #        tmpDescr    <- tmpDescr[ -tmpBads, ]
+        #        tmpClass    <- tmpClass[ -tmpBads ]
+        #
+        #        ## do the same for the holdout data
+        #        if ( !is.null(holdDescr) ) {
+        #            holdBads    <- which(holdDescr[,bad.col[k]] %in% bad.levels)
+        #            holdDescr   <- holdDescr[ -holdBads, ]
+        #            holdClass   <- holdClass[ -holdBads ]
+        #            holdDescr   <- droplevels(holdDescr)
+        #        }
+        #
+        #    }
+        #}
+        #tmpDescr    <- droplevels(tmpDescr)
+        #testDescr   <- droplevels(testDescr)
         #tmpDescr    <- tmpDescr[ ,-bad.col]
         #testDescr   <- testDescr[ ,-bad.col]
-        
         
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
@@ -373,9 +367,9 @@ for (i in 11:3) {
             number=num.cv,
             repeats=num.repeat)
             
-            ##------------------------------------------------------------------
-            ## hold-out sample
-            ##------------------------------------------------------------------
+        ##------------------------------------------------------------------
+        ## hold-out sample
+        ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
             
             num.cv      <- 5
@@ -388,36 +382,37 @@ for (i in 11:3) {
             number=num.cv,
             repeats=num.repeat)
             
-            ##------------------------------------------------------------------
-            ## final fit
-            ##------------------------------------------------------------------
+        ##------------------------------------------------------------------
+        ## final fit
+        ##------------------------------------------------------------------
         } else {
             
             fitControl <- trainControl(method="none")
             
         }
-        
+
         ##------------------------------------------------------------------
         ## Do the fit
         ##------------------------------------------------------------------
         if ( DO_PARAMETER_SWEEP | DO_HOLD_OUT_SAMPLE ) {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="C5.0",
+                                    method="rda",
                                     trControl=fitControl,
                                     verbose=FALSE,
                                     metric="Accuracy",
-                                    tuneLength=11))
+                                    tuneLength=10))
             
         } else {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="C5.0",
+                                    method="rda",
                                     trControl=fitControl,
                                     verbose=FALSE,
                                     metric="Accuracy",
-                                    tuneGrid=c50Grid))
+                                    tuneGrid=expand.grid(mtry=30)))
         }
+ 
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
@@ -431,10 +426,6 @@ for (i in 11:3) {
         
     }
 }
-
-
-
-
 
 
 

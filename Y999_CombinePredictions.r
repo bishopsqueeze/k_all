@@ -55,6 +55,15 @@ X008.g  <- read.csv(file="/Users/alexstephens/Development/kaggle/allstate/data/g
 X010.g  <- read.csv(file="/Users/alexstephens/Development/kaggle/allstate/data/gbm_scored_X010/X010_gbm_gonly.csv", 
                     colClasses=c("character", "character"), header=TRUE)
 
+## Y020 - (score=0.54152)
+Y020.g  <- read.csv(file="/Users/alexstephens/Development/kaggle/allstate/data/rf_scored_X020/Y020_rf_gonly.csv",
+colClasses=c("character", "character"), header=TRUE)
+
+## X021 - (score=0.54045)
+X021.g  <- read.csv(file="/Users/alexstephens/Development/kaggle/allstate/data/svm_scored_X021/X021_svm_gonly.csv",
+colClasses=c("character", "character"), header=TRUE)
+
+
 ##------------------------------------------------------------------
 ## split the submissions into plan constituents
 ##------------------------------------------------------------------
@@ -62,25 +71,40 @@ lq      <- subSplit(s=X008.lq)
 g.S006  <- subSplit(s=S006.g)
 g.X008  <- subSplit(s=X008.g)
 g.X010  <- subSplit(s=X010.g)
+g.Y020  <- subSplit(s=Y020.g)
+g.X021  <- subSplit(s=X021.g)
 
 ##------------------------------------------------------------------
 ## combine the prediction
 ##------------------------------------------------------------------
-g.comb  <- data.frame(a=g.S006$G, b=g.X008$G, c=g.X010$G)
-g.med   <- apply(g.comb, 1, median)
 
+## match index
+match.index <- (g.S006$G == g.Y020$G)
 
+## combine
+#g.comb  <- data.frame(  s1=as.integer(g.S006$G),
+#                        s2=as.integer(g.X008$G),
+#                        s3=as.integer(g.Y020$G))
+
+## estimate the median
+#g.med   <- as.character(apply(g.comb, 1, median))
 
 
 ##------------------------------------------------------------------
 ## create a submission file
 ##------------------------------------------------------------------
-tmp     <- lq
-tmp$G   <- as.character(g.med)
+tmp                  <- lq
+tmp$G[match.index]   <- g.S006$G[match.index]
 
+sub     <- data.frame(
+                customer_ID=tmp$customer_ID,
+                plan=apply(tmp[, LETTERS[1:7]], 1, paste, sep="", collapse="")
+            )
 
-paste(tmp[, LETTERS[1:7]], sep="", collapse="")
-
+##------------------------------------------------------------------
+## Write the file
+##------------------------------------------------------------------
+write.csv(sub, file="Y022_S006.Y020.Eq_gonly.csv", row.names=FALSE)
 
 
 

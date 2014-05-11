@@ -83,7 +83,7 @@ convert.magic   <- function(obj, col, type) {
     
     ## loop over the columns and convert via a swtich()
     for (i in 1:length(idx)) {
-        FUN <- switch(type[i], character = as.character, numeric = as.numeric, factor = as.factor)
+        FUN <- switch(type[i], character = as.character, numeric = as.numeric, factor = as.factor, integer = as.integer)
         obj[, idx[i]]   <- FUN(obj[, idx[i]])
     }    
     return(obj)

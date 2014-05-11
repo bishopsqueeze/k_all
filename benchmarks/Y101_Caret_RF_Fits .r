@@ -23,9 +23,9 @@ rm(list=ls())
 ##------------------------------------------------------------------
 ## Flags for fit type (enable only one at a time)
 ##------------------------------------------------------------------
-DO_PARAMETER_SWEEP  <- TRUE
+DO_PARAMETER_SWEEP  <- FALSE
 DO_HOLD_OUT_SAMPLE  <- FALSE
-DO_FINAL_FIT        <- FALSE
+DO_FINAL_FIT        <- TRUE
 
 ##------------------------------------------------------------------
 ## Set the working directory
@@ -51,7 +51,7 @@ test.files     <- dir("./panels")[(grep("Y004_allstatePanelData_Test", dir("./pa
 ##------------------------------------------------------------------
 ## Loop over each shopping_pt relevant to the test {1 ... 11}
 ##------------------------------------------------------------------
-for (i in 11:3) {
+for (i in 2:11) {
     
     ## get panel filenames
     tmp.filename    <- panel.files[i]
@@ -88,7 +88,7 @@ for (i in 11:3) {
         
         ## define the output filename
         tmp.panel    <- paste("SP_", ifelse(i < 10, paste("0",i,sep=""), i), sep="")
-        out.filename <- paste(tmp.panel,".","Group_",groups[j],".c50CaretFit_AllSample_REPCV.Rdata",sep="")
+        out.filename <- paste(tmp.panel,".","Group_",groups[j],".rf_CaretFit_AllSample_REPCV.Rdata",sep="")
         
         ## define the dependent variable and the last-quoted benchmark
         tmp.y      <- paste(groups[j],"T",sep="")
@@ -137,7 +137,7 @@ for (i in 11:3) {
         ## remove the d[A-G] parameters
         ##------------------------------------------------------------------
         drop.cols <- c(drop.cols, paste("d",LETTERS[1:7],sep=""))
-        
+       
         ##------------------------------------------------------------------
         ## Drop the current group levels
         ##------------------------------------------------------------------
@@ -172,7 +172,9 @@ for (i in 11:3) {
         ## remove variables with exactly zero variance
         ##------------------------------------------------------------------
         #zeroDescr <- colnames(tmpDescr)[(apply(tmpDescr, 2, sd) == 0)]
-        #tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #if ( !is.na(zeroDescr) ) {
+        #    tmpDescr  <- tmpDescr[ , -which(colnames(tmpDescr) %in% zeroDescr)]
+        #}
 
         ##------------------------------------------------------------------
         ## remove variables with near-zero variance
@@ -193,7 +195,7 @@ for (i in 11:3) {
         ##------------------------------------------------------------------
         #comboDescr      <- findLinearCombos(tmpDescr)
         #comboVars       <- colnames(tmpDescr)[comboDescr$remove]
-        #comboVars       <- comboVars[ -grep("[A-G][0-9].[0-9]", comboVars) ]
+        #comboVars       <- comboVars[ -grep("[A-G][0-9]", comboVars) ]
         #tmpDescr        <- tmpDescr[, -comboDescr$remove]
         
         ##******************************************************************
@@ -211,13 +213,13 @@ for (i in 11:3) {
             ## the number of total samples to 10,000 ... but isolate the sample
             ## using stratified sampling on the classes
             ##------------------------------------------------------------------
-            max.reg <- 20000
+            max.reg <- 10000
             if ( length(tmpClass) > max.reg ) {
               reg.p   <- max.reg/length(tmpClass)
             } else {
               reg.p   <- 1
             }
-            set.seed(1234)
+            set.seed(88888888)
             reg.idx    <- createDataPartition(tmpClass, p=reg.p, list=TRUE)
             
             ##------------------------------------------------------------------
@@ -231,21 +233,20 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            c50.trials  <- seq(50, 500, 50)
-            c50.winnow  <- c(FALSE)
-            c50.model   <- c("rules")
+            ##
+            
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Sweep.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Sweep.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for a hold-out sample
         ##------------------------------------------------------------------
         } else if (DO_HOLD_OUT_SAMPLE) {
-  
-            set.seed(1234)
+            
+            set.seed(88888888)
             numObs      <- nrow(tmpDescr)
-            holdSmp     <- sample.int(nrow(tmpDescr), round(0.20*nrow(tmpDescr)))   ## 10% hold-out
+            holdSmp     <- sample.int(nrow(tmpDescr), round(0.10*nrow(tmpDescr)))   ## 10% hold-out
 
             holdClass   <- droplevels(tmpClass[holdSmp])
             holdDescr   <- tmpDescr[holdSmp, ]
@@ -255,15 +256,11 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            if (i <= 12) {
-                c50.trials  <- c(1)
-                c50.winnow  <- c(FALSE)
-                c50.model   <- c("rules")
-            }
-
+            ##logit.iter <- c(1000)
+            
 
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_HoldOut.Rdata",sep="")
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_HoldOut.Rdata",sep="")
 
         ##------------------------------------------------------------------
         ## data for the final fit
@@ -278,21 +275,16 @@ for (i in 11:3) {
             ##------------------------------------------------------------------
             ## define the tuning parameters
             ##------------------------------------------------------------------
-            if (i <= 12) {
-                c50.trials  <- c(1)
-                c50.winnow  <- c(FALSE)
-                c50.model   <- c("rules")
-            }
+            ##
             
             ## output file
-            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_C50_Fit_Final.Rdata",sep="")
-
+            out.filename <- paste(tmp.panel,".","Group_",groups[j],".Caret_rf_Fit_Final.Rdata",sep="")
         }
 
         ##------------------------------------------------------------------
         ## define the fit grid
         ##------------------------------------------------------------------
-        c50Grid <- expand.grid(trials=c50.trials, model=c50.model, winnow=c50.winnow)
+        ##
 
         ##------------------------------------------------------------------
         ## define the test dataset
@@ -306,6 +298,7 @@ for (i in 11:3) {
         if (length(misMatchCols) > 0) {
             tmpDescr  <- tmpDescr[ , -misMatchCols]
         }
+        
         
         ##------------------------------------------------------------------
         ## <CRUDE> remove columns with factor mismatches
@@ -353,7 +346,6 @@ for (i in 11:3) {
         #tmpDescr    <- tmpDescr[ ,-bad.col]
         #testDescr   <- testDescr[ ,-bad.col]
         
-        
         ##******************************************************************
         ## Do a k-fold cv (or) the final fit
         ##******************************************************************
@@ -373,9 +365,9 @@ for (i in 11:3) {
             number=num.cv,
             repeats=num.repeat)
             
-            ##------------------------------------------------------------------
-            ## hold-out sample
-            ##------------------------------------------------------------------
+        ##------------------------------------------------------------------
+        ## hold-out sample
+        ##------------------------------------------------------------------
         } else if ( DO_HOLD_OUT_SAMPLE ) {
             
             num.cv      <- 5
@@ -388,36 +380,37 @@ for (i in 11:3) {
             number=num.cv,
             repeats=num.repeat)
             
-            ##------------------------------------------------------------------
-            ## final fit
-            ##------------------------------------------------------------------
+        ##------------------------------------------------------------------
+        ## final fit
+        ##------------------------------------------------------------------
         } else {
             
             fitControl <- trainControl(method="none")
             
         }
-        
+
         ##------------------------------------------------------------------
         ## Do the fit
         ##------------------------------------------------------------------
         if ( DO_PARAMETER_SWEEP | DO_HOLD_OUT_SAMPLE ) {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="C5.0",
+                                    method="rf",
                                     trControl=fitControl,
                                     verbose=FALSE,
                                     metric="Accuracy",
-                                    tuneLength=11))
+                                    tuneLength=10))
             
         } else {
             tmp.fit <- try(train(   x=tmpDescr,
                                     y=tmpClass,
-                                    method="C5.0",
+                                    method="rf",
                                     trControl=fitControl,
                                     verbose=FALSE,
                                     metric="Accuracy",
-                                    tuneGrid=c50Grid))
+                                    tuneGrid=expand.grid(mtry=30)))
         }
+ 
         
         ##------------------------------------------------------------------
         ## save the results w/error handling for bad fits
@@ -431,10 +424,6 @@ for (i in 11:3) {
         
     }
 }
-
-
-
-
 
 
 
